@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#E8C87A">
-<title>OX 퀴즈 · 사자성어 시간여행</title>
+<title>OX 퀴즈 복습 · 사자성어 시간여행</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -19,15 +19,33 @@
 
   html, body {
     width: 100%;
-    height: 100%;
-    overflow: hidden;
     font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
     color: var(--ink);
     -webkit-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
-  body { background: linear-gradient(180deg, var(--c1) 0%, var(--c2) 100%); }
+
+  /* ---------- 모드별 body ---------- */
+  body.mode-list {
+    min-height: 100vh;
+    padding-bottom: calc(12vmin + env(safe-area-inset-bottom));
+    background:
+      radial-gradient(ellipse at top, #FFF2D2 0%, transparent 60%),
+      linear-gradient(180deg, #FBF5E6 0%, #F0E2C0 100%);
+    background-attachment: fixed;
+  }
+  body.mode-play {
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--c1) 0%, var(--c2) 100%);
+  }
+  body.mode-play html { height: 100%; overflow: hidden; }
+
+  /* 모드별 표시 토글 */
+  body.mode-list #playContainer { display: none; }
+  body.mode-play #listContainer,
+  body.mode-play .bottom-nav { display: none; }
 
   .watermark-bg {
     position: fixed; inset: 0; pointer-events: none;
@@ -35,37 +53,205 @@
     background-image: repeating-linear-gradient(-30deg, transparent 0 120px, rgba(58,36,16,0.8) 120px 122px);
   }
 
-  /* 헤더 */
+  /* ---------- 헤더 (공통) ---------- */
   .header {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+    position: sticky; top: 0; z-index: 20;
     display: grid; grid-template-columns: auto 1fr auto;
     align-items: center; gap: 1vmin;
     padding: 2vmin 3vmin;
-    background: linear-gradient(180deg, rgba(255,246,220,0.92), rgba(255,246,220,0.72));
-    border-bottom: 2px solid var(--line);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: linear-gradient(180deg, #F5E6C8 0%, #E8C87A 100%);
+    border-bottom: 2px solid #8a5a1a;
+    box-shadow: 0 4px 12px rgba(58,36,16,0.15);
+  }
+  body.mode-play .header {
+    position: fixed; top: 0; left: 0; right: 0;
   }
   .icon-btn {
     display: inline-flex; align-items: center; justify-content: center;
     width: clamp(36px, 6vmin, 52px); height: clamp(36px, 6vmin, 52px);
-    border: 2px solid var(--line); border-radius: 50%;
-    background: var(--paper); color: var(--ink);
+    border: 2px solid #8a5a1a; border-radius: 50%;
+    background: #FFF6DC; color: #4a2a08;
     cursor: pointer; transition: transform 0.1s ease;
   }
   .icon-btn:active { transform: scale(0.92); }
   .icon-btn svg { width: 55%; height: 55%; }
   .header-title {
     font-size: clamp(16px, 2.6vmin, 24px);
-    font-weight: 900; color: var(--ink);
+    font-weight: 900; color: #4a2a08;
     letter-spacing: 0.05em; text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .header-title small {
     display: block; font-size: 0.6em; font-weight: 700;
-    color: var(--ink-soft); letter-spacing: 0.15em; margin-top: 0.2em;
+    color: rgba(74,42,8,0.7); letter-spacing: 0.15em; margin-top: 0.2em;
   }
 
-  /* 진행 바 */
+  /* ---------- 리스트 모드 ---------- */
+  .wrap {
+    position: relative; z-index: 2;
+    max-width: 1200px; margin: 0 auto;
+    padding: 4vmin 3vmin 2vmin;
+  }
+
+  .intro-card {
+    background: #FFF6DC;
+    border: 3px solid #8a5a1a; border-radius: 20px;
+    padding: 3vmin 3.5vmin;
+    margin-bottom: 4vmin;
+    box-shadow: 0 4px 12px rgba(58,36,16,0.12);
+    display: flex; align-items: center; gap: 2vmin;
+  }
+  .intro-icon {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(44px, 8vmin, 64px); height: clamp(44px, 8vmin, 64px);
+    border-radius: 50%;
+    background: linear-gradient(135deg, #F5E6C8, #E8C87A);
+    border: 2px solid #8a5a1a; color: #4a2a08;
+  }
+  .intro-icon svg { width: 55%; height: 55%; }
+  .intro-text {
+    font-size: clamp(13px, 2.1vmin, 16px);
+    color: #3a2410; line-height: 1.6; font-weight: 600;
+  }
+  .intro-text b {
+    color: #4a2a08;
+    background: linear-gradient(transparent 60%, rgba(232,200,122,0.55) 60%);
+    padding: 0 0.3em;
+  }
+
+  .volumes {
+    display: grid; grid-template-columns: 1fr; gap: 4vmin;
+  }
+  @media (min-width: 900px)  { .volumes { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1400px) { .volumes { grid-template-columns: 1fr 1fr 1fr; } }
+
+  .vol-card {
+    position: relative;
+    background: linear-gradient(135deg, var(--c1) 0%, var(--c2) 100%);
+    border-radius: 24px;
+    padding: 3vmin;
+    box-shadow: 0 6px 0 rgba(58,36,16,0.15), 0 10px 24px rgba(58,36,16,0.2);
+    overflow: hidden;
+  }
+  .vol-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(-30deg, transparent 0 80px, rgba(255,255,255,0.08) 80px 82px);
+    pointer-events: none;
+  }
+  .vol-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 2vmin; margin-bottom: 2.5vmin;
+    position: relative;
+  }
+  .vol-header-left {
+    display: flex; align-items: baseline; gap: 1.5vmin;
+    flex-wrap: wrap;
+  }
+  .vol-num {
+    font-size: clamp(14px, 2.2vmin, 20px);
+    font-weight: 800; color: #4a2a08;
+    background: rgba(255,255,255,0.45);
+    padding: 0.6vmin 1.4vmin; border-radius: 999px;
+    letter-spacing: 0.05em;
+  }
+  .vol-title {
+    font-size: clamp(18px, 3.2vmin, 30px);
+    font-weight: 900; color: #3a2410;
+    letter-spacing: 0.03em;
+  }
+  .vol-count {
+    font-size: clamp(12px, 1.8vmin, 15px);
+    font-weight: 800; color: #4a2a08;
+    background: rgba(255,255,255,0.55);
+    padding: 0.5vmin 1.4vmin; border-radius: 999px;
+  }
+  .episodes {
+    display: grid; grid-template-columns: 1fr; gap: 1.4vmin;
+    position: relative;
+  }
+  @media (min-width: 500px) { .episodes { grid-template-columns: 1fr 1fr; } }
+
+  .ep {
+    display: flex; align-items: center; gap: 1.6vmin;
+    padding: 1.8vmin 2vmin;
+    background: rgba(255,255,255,0.72);
+    border: 2px solid rgba(74,42,8,0.25);
+    border-radius: 16px;
+    text-decoration: none;
+    color: #3a2410;
+    font-weight: 700;
+    font-size: clamp(13px, 2.2vmin, 18px);
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  }
+  .ep:hover, .ep:active {
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.92);
+    border-color: rgba(74,42,8,0.5);
+  }
+  .ep.locked {
+    opacity: 0.55; cursor: not-allowed;
+  }
+  .ep.locked:hover, .ep.locked:active {
+    transform: none;
+    background: rgba(255,255,255,0.72);
+    border-color: rgba(74,42,8,0.25);
+  }
+  .ep-num {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(26px, 4vmin, 36px); height: clamp(26px, 4vmin, 36px);
+    border-radius: 50%;
+    background: #4a2a08; color: #FFF6DC;
+    font-weight: 900;
+    font-size: clamp(12px, 2vmin, 16px);
+  }
+  .ep-title { flex: 1 1 auto; letter-spacing: 0.02em; }
+  .ep-icon {
+    flex: 0 0 auto;
+    width: clamp(18px, 2.6vmin, 22px);
+    height: clamp(18px, 2.6vmin, 22px);
+    color: rgba(74,42,8,0.5);
+  }
+  .ep.locked .ep-icon { color: rgba(74,42,8,0.7); }
+
+  .footer {
+    text-align: center;
+    padding: 4vmin 2vmin 2vmin;
+    font-size: clamp(11px, 1.6vmin, 14px);
+    color: rgba(74,42,8,0.6);
+    letter-spacing: 0.05em;
+    position: relative; z-index: 2;
+  }
+
+  /* ---------- 하단 메뉴 (리스트 모드) ---------- */
+  .bottom-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: linear-gradient(180deg, rgba(58,36,16,0.92) 0%, rgba(32,18,6,0.98) 100%);
+    border-top: 2px solid rgba(232,200,122,0.55);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-item {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.6vmin; padding: 2vmin 1vmin;
+    color: #FFF6DC; font-weight: 700;
+    font-size: clamp(11px, 1.9vmin, 18px);
+    transition: background 0.15s ease;
+    cursor: pointer; border: none;
+    background: transparent; font-family: inherit;
+  }
+  .nav-item.active { color: #F5E6C8; background: rgba(232,200,122,0.18); }
+  .nav-item:hover, .nav-item:active { background: rgba(232,200,122,0.18); }
+  .nav-item svg {
+    width: clamp(22px, 4vmin, 38px);
+    height: clamp(22px, 4vmin, 38px);
+  }
+
+  /* ---------- 플레이 모드 ---------- */
   .progress {
     position: fixed; z-index: 19; height: 6px;
     top: calc(2vmin + clamp(36px, 6vmin, 52px) + 2vmin + 2px);
@@ -77,8 +263,6 @@
     background: linear-gradient(90deg, #8a5a1a, #4a2a08);
     border-radius: 999px; transition: width 0.3s ease;
   }
-
-  /* 메인 스테이지 */
   .stage {
     position: absolute;
     top: calc(2vmin + clamp(36px, 6vmin, 52px) + 4vmin);
@@ -87,20 +271,24 @@
     overflow: hidden; z-index: 2;
   }
   .slide {
-    position: absolute; inset: 0; display: none;
+    position: absolute; inset: 0;
+    display: none;
     align-items: center; justify-content: center;
     padding: 4vmin; overflow-y: auto;
   }
   .slide.active { display: flex; }
 
-  /* 퀴즈 카드 */
-  .quiz-card {
+  .quiz-card, .result-card, .message-card {
     max-width: 720px; width: 100%;
-    padding: 5vmin 4vmin;
     background: var(--paper);
     border: 4px solid var(--line); border-radius: 28px;
     box-shadow: 0 10px 24px rgba(58,36,16,0.2);
   }
+  .quiz-card { padding: 5vmin 4vmin; }
+  .result-card, .message-card {
+    padding: 6vmin 4vmin; text-align: center;
+  }
+
   .quiz-source {
     display: inline-flex; align-items: center; gap: 1vmin;
     font-size: clamp(11px, 1.7vmin, 14px);
@@ -152,16 +340,7 @@
   .quiz-feedback.ok { background: #E8F6E4; color: #2a5a1a; border: 2px solid #8AC07A; }
   .quiz-feedback.ng { background: #FBEAE8; color: #5a1a10; border: 2px solid #E89888; }
 
-  /* 결과 카드 */
-  .result-card {
-    max-width: 720px; width: 100%;
-    padding: 6vmin 4vmin;
-    background: var(--paper);
-    border: 4px solid var(--line); border-radius: 28px;
-    text-align: center;
-    box-shadow: 0 10px 24px rgba(58,36,16,0.2);
-  }
-  .result-badge {
+  .result-badge, .message-icon {
     display: inline-flex; align-items: center; justify-content: center;
     width: clamp(80px, 14vmin, 140px); height: clamp(80px, 14vmin, 140px);
     border-radius: 50%;
@@ -169,7 +348,8 @@
     border: 4px solid var(--line); color: var(--ink);
     margin-bottom: 3vmin;
   }
-  .result-badge svg { width: 55%; height: 55%; }
+  .result-badge svg, .message-icon svg { width: 55%; height: 55%; }
+
   .result-score {
     font-size: clamp(32px, 7vmin, 62px);
     font-weight: 900; color: var(--ink);
@@ -179,15 +359,20 @@
     font-size: 0.5em; font-weight: 700;
     color: var(--ink-soft); margin-left: 0.3em;
   }
-  .result-text {
+  .result-text, .message-text {
     font-size: clamp(14px, 2.3vmin, 18px);
     color: var(--ink); line-height: 1.7;
     margin-bottom: 3.5vmin;
   }
-  .result-actions {
+  .message-title {
+    font-size: clamp(20px, 3.6vmin, 30px);
+    font-weight: 900; color: var(--ink);
+    margin-bottom: 2vmin; letter-spacing: 0.05em;
+  }
+  .result-actions, .message-actions {
     display: flex; gap: 2vmin; justify-content: center; flex-wrap: wrap;
   }
-  .result-btn {
+  .action-btn {
     display: inline-flex; align-items: center; gap: 0.8vmin;
     padding: 1.8vmin 3.5vmin;
     font-size: clamp(13px, 2.1vmin, 17px);
@@ -197,26 +382,12 @@
     cursor: pointer; font-family: inherit;
     box-shadow: 0 3px 0 var(--line);
     transition: transform 0.1s ease;
+    text-decoration: none;
   }
-  .result-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
-  .result-btn.primary { background: linear-gradient(180deg, var(--c1), var(--c2)); }
-  .result-btn svg { width: 1.1em; height: 1.1em; }
+  .action-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+  .action-btn.primary { background: linear-gradient(180deg, var(--c1), var(--c2)); }
+  .action-btn svg { width: 1.1em; height: 1.1em; }
 
-  /* 로딩/에러 */
-  .loading, .error {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 2vmin; text-align: center; padding: 4vmin;
-    color: var(--ink); font-weight: 700;
-  }
-  .loading svg, .error svg {
-    width: clamp(40px, 8vmin, 72px); height: clamp(40px, 8vmin, 72px);
-  }
-  .loading svg { animation: spin 1.2s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* 컨트롤 */
   .controls {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
     display: grid; grid-template-columns: auto 1fr auto;
@@ -249,137 +420,328 @@
     letter-spacing: 0.1em;
   }
 
+  .loading {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2vmin; text-align: center; padding: 4vmin;
+    color: var(--ink); font-weight: 700;
+  }
+  .loading svg {
+    width: clamp(40px, 8vmin, 72px); height: clamp(40px, 8vmin, 72px);
+    animation: spin 1.2s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   @media print { body { display: none; } }
 </style>
 </head>
-<body>
+<body class="mode-list">
 
   <div class="watermark-bg"></div>
 
   <header class="header">
-    <button class="icon-btn" onclick="history.length>1 ? history.back() : location.href='index.html'" aria-label="뒤로">
+    <button class="icon-btn" id="backBtn" aria-label="뒤로">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
     </button>
-    <h1 class="header-title">
-      <span>OX 퀴즈</span>
-      <small id="hSubtitle">전체 사자성어</small>
+    <h1 class="header-title" id="headerTitle">
+      <span id="hTitle">OX 퀴즈 복습</span>
+      <small id="hSubtitle">완료한 편을 다시 풀어 봐요</small>
     </h1>
     <button class="icon-btn" onclick="location.href='index.html'" aria-label="홈으로">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
     </button>
   </header>
 
-  <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+  <!-- ========= 리스트 모드 ========= -->
+  <div id="listContainer">
+    <main class="wrap">
+      <section class="intro-card">
+        <span class="intro-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+        </span>
+        <p class="intro-text" id="introText">
+          <b>만화를 끝까지 본 편</b>의 OX 퀴즈를 다시 풀 수 있어요.
+          먼저 시리즈에서 만화를 감상한 뒤 이곳으로 돌아와 복습해 보세요.
+        </p>
+      </section>
+      <section class="volumes" id="volumes"></section>
+    </main>
+    <div class="footer">© 2025 꼬마나라 AI 티처랩</div>
+  </div>
 
-  <main class="stage" id="stage">
-    <div class="loading" id="loading">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <span>퀴즈를 불러오는 중이에요...</span>
-    </div>
-  </main>
+  <!-- ========= 플레이 모드 ========= -->
+  <div id="playContainer">
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+    <main class="stage" id="stage">
+      <div class="loading" id="loading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <span>퀴즈를 불러오는 중이에요...</span>
+      </div>
+    </main>
+    <nav class="controls">
+      <button class="ctrl-btn" id="prevBtn" aria-label="이전">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        <span>이전</span>
+      </button>
+      <div class="page-indicator" id="pageIndicator">0 / 0</div>
+      <button class="ctrl-btn primary" id="nextBtn" aria-label="다음">
+        <span>다음</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </nav>
+  </div>
 
-  <nav class="controls">
-    <button class="ctrl-btn" id="prevBtn" aria-label="이전">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-      <span>이전</span>
+  <!-- 하단 메뉴 (리스트 모드만) -->
+  <nav class="bottom-nav">
+    <button class="nav-item" onclick="location.href='viewer.html?ep=01'" aria-label="만화보기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+      <span>만화보기</span>
     </button>
-    <div class="page-indicator" id="pageIndicator">0 / 0</div>
-    <button class="ctrl-btn primary" id="nextBtn" aria-label="다음">
-      <span>다음</span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+    <button class="nav-item active" onclick="location.href='quiz.html'" aria-label="OX퀴즈">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+      <span>OX퀴즈</span>
+    </button>
+    <button class="nav-item" onclick="location.href='series.html'" aria-label="시리즈">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 6l4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
+      <span>시리즈</span>
+    </button>
+    <button class="nav-item" onclick="location.href='mylearning.html'" aria-label="내학습">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>
+      <span>내학습</span>
     </button>
   </nav>
 
 <script>
-  // ---- 어떤 에피소드 퀴즈를 쓸지 ----
-  // 지금은 ep01만. 나중에 ['01','02','03'] 처럼 추가하면 자동 확장됨.
-  const EP_IDS = ['01'];
+  // ---------- 데이터 ----------
+  const VOLUMES = [
+    { num: 1,  title: '노력과 끈기', c1: '#F5E6C8', c2: '#E8C87A',
+      eps: ['우공이산', '형설지공', '작심삼일', '백절불굴', '일취월장'] },
+    { num: 2,  title: '우정과 의리', c1: '#E8F5EC', c2: '#A8D8B8',
+      eps: ['죽마고우', '이심전심', '동고동락', '호형호제', '막역지우'] },
+    { num: 3,  title: '지혜와 꾀',   c1: '#E8EEF8', c2: '#A8C0E8',
+      eps: ['일석이조', '조삼모사', '호가호위', '임기응변', '백문불여일견'] },
+    { num: 4,  title: '말과 태도',   c1: '#F8EAF2', c2: '#E8A8CC',
+      eps: ['마이동풍', '삼인성호', '구밀복검', '언중유골', '역지사지'] },
+    { num: 5,  title: '가족과 효도', c1: '#F8F0E8', c2: '#E8C0A0',
+      eps: ['반포지효', '부전자전', '혈육지정', '동병상련', '천생연분'] },
+    { num: 6,  title: '인생의 교훈', c1: '#EEE8F8', c2: '#C0A8E8',
+      eps: ['새옹지마', '전화위복', '고진감래', '호사다마', '인과응보'] },
+    { num: 7,  title: '욕심과 절제', c1: '#EAF5E8', c2: '#A8D8A0',
+      eps: ['소탐대실', '과유불급', '다다익선', '자화자찬', '중용지도'] },
+    { num: 8,  title: '성장과 배움', c1: '#E8F5F8', c2: '#98CAE0',
+      eps: ['청출어람', '온고지신', '교학상장', '괄목상대', '천리마'] },
+    { num: 9,  title: '용기와 위기', c1: '#F8ECEA', c2: '#E8A898',
+      eps: ['사면초가', '위기일발', '절체절명', '일편단심', '칠전팔기'] },
+    { num: 10, title: '세상과 공정', c1: '#EEF5E8', c2: '#B8D898',
+      eps: ['권선징악', '공평무사', '오십보백보', '유유상종', '천고마비'] },
+  ];
+  const STORAGE_KEY = 'sajasungo_completed';
 
-  // ---- DOM ----
-  const stage = document.getElementById('stage');
-  const loadingEl = document.getElementById('loading');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const pageIndicator = document.getElementById('pageIndicator');
-  const progressFill = document.getElementById('progressFill');
-  const hSubtitle = document.getElementById('hSubtitle');
+  const params = new URLSearchParams(location.search);
+  const EP_PARAM = params.get('ep');
 
-  // ---- 상태 ----
-  let quizzes = [];      // { epId, epTitle, epVol, epHanja, volColors, question, answer, explain }
-  let current = 0;
-  let answers = {};      // { [idx]: 'correct'|'wrong' }
-
+  function getCompleted() {
+    try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')); }
+    catch (_) { return new Set(); }
+  }
+  function pad2(n) { return String(n).padStart(2, '0'); }
   function esc(s) {
-    return String(s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   const ICONS = {
     circle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>',
-    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    x:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
     trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
     rotate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
-    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
-    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>'
+    home:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+    book:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>',
+    library:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 6l4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>',
+    play:   '<svg class="ep-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+    lock:   '<svg class="ep-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
   };
 
-  // ---- 로드 ----
-  function loadOne(epId) {
-    return new Promise((resolve, reject) => {
-      if (window.EP_DATA && window.EP_DATA[epId]) return resolve(window.EP_DATA[epId]);
-      const s = document.createElement('script');
-      s.src = `data/ep${epId}.js`;
-      s.onload = () => resolve(window.EP_DATA && window.EP_DATA[epId]);
-      s.onerror = () => reject(new Error(`ep${epId}.js 없음`));
-      document.head.appendChild(s);
-    });
+  const backBtn = document.getElementById('backBtn');
+  const hTitle = document.getElementById('hTitle');
+  const hSubtitle = document.getElementById('hSubtitle');
+
+  // ---------- 분기 ----------
+  if (EP_PARAM) {
+    initPlay(EP_PARAM);
+  } else {
+    initList();
   }
 
-  async function loadAll() {
-    try {
-      const eps = await Promise.all(EP_IDS.map(loadOne));
-      quizzes = [];
-      eps.forEach(ep => {
-        if (!ep || !ep.quiz) return;
-        ep.quiz.filter(q => q.type === 'ox').forEach(q => {
-          quizzes.push({
-            epId: ep.id,
-            epTitle: ep.title,
-            epVol: ep.vol,
-            epHanja: ep.hanja,
-            volColors: ep.volColors,
-            question: q.question,
-            answer: q.answer,
-            explain: q.explain
-          });
-        });
-      });
-      if (!quizzes.length) { showError('사용할 OX 퀴즈가 없어요.'); return; }
-      hSubtitle.textContent = `${EP_IDS.length}편 · 총 ${quizzes.length}문제`;
-      loadingEl.remove();
-      current = 0;
-      render();
-    } catch (err) {
-      showError(err.message || '퀴즈를 불러오지 못했어요.');
+  // ========================================================================
+  // 리스트 모드
+  // ========================================================================
+  function initList() {
+    document.body.className = 'mode-list';
+    backBtn.onclick = () => {
+      if (history.length > 1) history.back();
+      else location.href = 'index.html';
+    };
+
+    const completed = getCompleted();
+    const doneCount = completed.size;
+    const introEl = document.getElementById('introText');
+    if (doneCount === 0) {
+      introEl.innerHTML = '<b>만화를 끝까지 본 편</b>의 OX 퀴즈를 다시 풀 수 있어요.<br>먼저 <b>만화보기</b>로 이동해 한 편이라도 감상해 주세요.';
+    } else {
+      introEl.innerHTML = `지금까지 <b>${doneCount}편</b>을 완료했어요. 완료한 편을 골라 OX 퀴즈를 복습해 보세요.`;
     }
+
+    renderVolumes(completed);
+  }
+
+  function renderVolumes(completed) {
+    const html = VOLUMES.map(vol => {
+      let doneInVol = 0;
+      const eps = vol.eps.map((title, i) => {
+        const globalEp = (vol.num - 1) * 5 + (i + 1);
+        const epId = `ep${pad2(globalEp)}`;
+        const isDone = completed.has(epId);
+        if (isDone) doneInVol++;
+        const cls = isDone ? 'ep' : 'ep locked';
+        const href = isDone ? `quiz.html?ep=${pad2(globalEp)}` : 'javascript:void(0)';
+        const icon = isDone ? ICONS.play : ICONS.lock;
+        const onclick = isDone
+          ? ''
+          : `onclick="alert('만화를 끝까지 본 뒤에 퀴즈를 풀 수 있어요.'); return false;"`;
+        return `
+          <a class="${cls}" href="${href}" ${onclick} ${isDone ? '' : 'aria-disabled="true"'}>
+            <span class="ep-num">${i + 1}</span>
+            <span class="ep-title">${esc(title)}</span>
+            ${icon}
+          </a>`;
+      }).join('');
+      return `
+        <article class="vol-card" style="--c1:${vol.c1};--c2:${vol.c2}">
+          <div class="vol-header">
+            <div class="vol-header-left">
+              <span class="vol-num">Vol.${vol.num}</span>
+              <h2 class="vol-title">${esc(vol.title)}</h2>
+            </div>
+            <span class="vol-count">${doneInVol}/5</span>
+          </div>
+          <div class="episodes">${eps}</div>
+        </article>`;
+    }).join('');
+    document.getElementById('volumes').innerHTML = html;
+  }
+
+  // ========================================================================
+  // 플레이 모드
+  // ========================================================================
+  function initPlay(epId) {
+    document.body.className = 'mode-play';
+    backBtn.onclick = () => { location.href = 'quiz.html'; };
+
+    const completed = getCompleted();
+    if (!completed.has(`ep${epId}`)) {
+      showLocked(epId);
+      return;
+    }
+    loadEpisode(epId);
+  }
+
+  function showLocked(epId) {
+    const loading = document.getElementById('loading');
+    if (loading) loading.remove();
+    document.getElementById('stage').innerHTML = `
+      <section class="slide active">
+        <div class="message-card">
+          <span class="message-icon">${ICONS.lock}</span>
+          <h2 class="message-title">아직 잠겨 있어요</h2>
+          <p class="message-text">
+            이 편의 만화를 먼저 끝까지 본 뒤에 퀴즈를 풀 수 있어요.<br>
+            만화를 감상한 뒤 다시 와 주세요.
+          </p>
+          <div class="message-actions">
+            <a class="action-btn" href="quiz.html">${ICONS.library}<span>목록으로</span></a>
+            <a class="action-btn primary" href="viewer.html?ep=${esc(epId)}">${ICONS.book}<span>만화 보러가기</span></a>
+          </div>
+        </div>
+      </section>`;
+    document.getElementById('prevBtn').disabled = true;
+    document.getElementById('nextBtn').disabled = true;
+    document.getElementById('pageIndicator').textContent = '';
+    document.getElementById('progressFill').style.width = '0%';
+  }
+
+  function loadEpisode(epId) {
+    if (window.EP_DATA && window.EP_DATA[epId]) {
+      setupPlay(window.EP_DATA[epId]);
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = `data/ep${epId}.js`;
+    s.onload = () => {
+      const ep = window.EP_DATA && window.EP_DATA[epId];
+      if (!ep) { showError(`ep${epId} 데이터를 찾을 수 없어요.`); return; }
+      setupPlay(ep);
+    };
+    s.onerror = () => showError(`ep${epId}.js 파일을 찾을 수 없어요.`);
+    document.head.appendChild(s);
   }
 
   function showError(msg) {
-    if (loadingEl) loadingEl.remove();
-    stage.innerHTML = `
-      <div class="error">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-        <div>${esc(msg)}</div>
-        <button class="ctrl-btn" onclick="location.href='index.html'">홈으로</button>
-      </div>`;
-    prevBtn.disabled = true;
-    nextBtn.disabled = true;
-    pageIndicator.textContent = '';
+    const loading = document.getElementById('loading');
+    if (loading) loading.remove();
+    document.getElementById('stage').innerHTML = `
+      <section class="slide active">
+        <div class="message-card">
+          <span class="message-icon">${ICONS.lock}</span>
+          <p class="message-text">${esc(msg)}</p>
+          <div class="message-actions">
+            <a class="action-btn primary" href="quiz.html">${ICONS.library}<span>목록으로</span></a>
+          </div>
+        </div>
+      </section>`;
+    document.getElementById('prevBtn').disabled = true;
+    document.getElementById('nextBtn').disabled = true;
+    document.getElementById('pageIndicator').textContent = '';
   }
 
-  // ---- 렌더 ----
-  function render() {
+  // ---- 플레이 상태 ----
+  let quizzes = [];
+  let current = 0;
+  let answers = {};
+  let epInfo = null;
+
+  function setupPlay(ep) {
+    epInfo = ep;
+    if (ep.volColors) {
+      document.documentElement.style.setProperty('--c1', ep.volColors.c1);
+      document.documentElement.style.setProperty('--c2', ep.volColors.c2);
+    }
+    hTitle.textContent = ep.title;
+    hSubtitle.textContent = `Vol.${ep.vol} · ${ep.volTitle}`;
+    document.title = `${ep.title} OX 퀴즈 · 사자성어 시간여행`;
+
+    quizzes = (ep.quiz || []).filter(q => q.type === 'ox');
+    if (!quizzes.length) {
+      showError('이 편에는 OX 퀴즈가 없어요.');
+      return;
+    }
+
+    const loading = document.getElementById('loading');
+    if (loading) loading.remove();
+    current = 0;
+    renderPlay();
+
+    document.getElementById('prevBtn').addEventListener('click', () => goPlay(current - 1));
+    document.getElementById('nextBtn').addEventListener('click', () => goPlay(current + 1));
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goPlay(current - 1); }
+      else if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goPlay(current + 1); }
+    });
+  }
+
+  function renderPlay() {
+    const stage = document.getElementById('stage');
     stage.querySelectorAll('.slide').forEach(el => el.remove());
 
     const isResult = current >= quizzes.length;
@@ -389,19 +751,16 @@
     stage.appendChild(slide);
 
     if (!isResult) attachQuizHandlers(slide, current);
-
-    updateControls(isResult);
+    updatePlayControls(isResult);
   }
 
   function renderQuiz(i) {
     const q = quizzes[i];
-    const c1 = q.volColors?.c1 || '#F5E6C8';
-    const c2 = q.volColors?.c2 || '#E8C87A';
     return `
-      <article class="quiz-card" style="--c1:${c1};--c2:${c2}">
+      <article class="quiz-card">
         <span class="quiz-source">
           ${ICONS.book}
-          <span>Vol.${q.epVol} · ${esc(q.epTitle)} <small style="opacity:0.7">(${esc(q.epHanja)})</small></span>
+          <span>Vol.${epInfo.vol} · ${esc(epInfo.title)} <small style="opacity:0.7">(${esc(epInfo.hanja)})</small></span>
         </span>
         <span class="quiz-num">문제 ${i + 1} / ${quizzes.length}</span>
         <div class="quiz-question">${esc(q.question)}</div>
@@ -419,15 +778,15 @@
     const perfect = total > 0 && correct === total;
     const msg = perfect
       ? '모든 문제를 맞혔어요! 정말 대단해요.'
-      : `${total}문제 중 ${correct}문제를 맞혔어요. 만화를 한 번 더 읽고 도전해 볼까요?`;
+      : `${total}문제 중 ${correct}문제를 맞혔어요. 만화를 한 번 더 읽어 보고 도전해 볼까요?`;
     return `
       <div class="result-card">
         <span class="result-badge">${ICONS.trophy}</span>
         <div class="result-score">${correct}<small>/ ${total}</small></div>
         <p class="result-text">${esc(msg)}</p>
         <div class="result-actions">
-          <button class="result-btn" onclick="restart()">${ICONS.rotate}<span>다시 풀기</span></button>
-          <button class="result-btn primary" onclick="location.href='index.html'">${ICONS.home}<span>홈으로</span></button>
+          <button class="action-btn" onclick="restartPlay()">${ICONS.rotate}<span>다시 풀기</span></button>
+          <a class="action-btn primary" href="quiz.html">${ICONS.library}<span>목록으로</span></a>
         </div>
       </div>`;
   }
@@ -438,7 +797,7 @@
     const fb = slideEl.querySelector(`[data-feedback="${i}"]`);
 
     if (answers[i]) {
-      mark(wrap, q, fb, answers[i], answers[`${i}_val`]);
+      markAnswer(wrap, q, fb, answers[i], answers[`${i}_val`]);
       return;
     }
     wrap.querySelectorAll('.quiz-opt').forEach(btn => {
@@ -450,12 +809,12 @@
         answers[i] = isCorrect ? 'correct' : 'wrong';
         answers[`${i}_val`] = raw;
         wrap.dataset.done = '1';
-        mark(wrap, q, fb, answers[i], raw);
+        markAnswer(wrap, q, fb, answers[i], raw);
       });
     });
   }
 
-  function mark(wrap, q, fb, status, chosenRaw) {
+  function markAnswer(wrap, q, fb, status, chosenRaw) {
     wrap.dataset.done = '1';
     wrap.querySelectorAll('.quiz-opt').forEach(btn => {
       btn.disabled = true;
@@ -469,11 +828,17 @@
     fb.textContent = (status === 'correct' ? '정답이에요! ' : '아쉬워요. ') + q.explain;
   }
 
-  function updateControls(isResult) {
+  function updatePlayControls(isResult) {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const progressFill = document.getElementById('progressFill');
+
     prevBtn.disabled = current === 0;
-    const totalSteps = quizzes.length + 1; // +1 for result
-    const stepNow = current + 1;
     nextBtn.disabled = isResult;
+
+    const totalSteps = quizzes.length + 1;
+    const stepNow = current + 1;
     pageIndicator.textContent = isResult ? '완료' : `${stepNow} / ${quizzes.length}`;
     progressFill.style.width = `${(stepNow / totalSteps) * 100}%`;
 
@@ -483,27 +848,18 @@
     else label.textContent = '다음';
   }
 
-  function go(n) {
+  function goPlay(n) {
     if (n < 0 || n > quizzes.length) return;
     current = n;
-    render();
+    renderPlay();
   }
-
-  function restart() {
+  function restartPlay() {
     answers = {};
-    go(0);
+    goPlay(0);
   }
-  window.restart = restart;
+  window.restartPlay = restartPlay;
 
-  prevBtn.addEventListener('click', () => go(current - 1));
-  nextBtn.addEventListener('click', () => go(current + 1));
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft') { e.preventDefault(); go(current - 1); }
-    else if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(current + 1); }
-  });
-
-  // 보안
+  // ---------- 보안 ----------
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('dragstart', e => e.preventDefault());
   document.addEventListener('selectstart', e => e.preventDefault());
@@ -524,8 +880,6 @@
     if (now - lastTouch <= 300) e.preventDefault();
     lastTouch = now;
   }, { passive: false });
-
-  loadAll();
 </script>
 
 </body>

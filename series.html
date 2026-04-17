@@ -163,15 +163,6 @@
     color: #3a2410;
     letter-spacing: 0.03em;
   }
-  .vol-badge {
-    font-size: clamp(10px, 1.5vmin, 14px);
-    font-weight: 700;
-    color: #5a3a18;
-    background: rgba(255,255,255,0.55);
-    padding: 0.4vmin 1.2vmin;
-    border-radius: 999px;
-  }
-
   .episodes {
     display: grid;
     grid-template-columns: 1fr;
@@ -384,7 +375,6 @@
               <span class="vol-num">Vol.${vol.num}</span>
               <h2 class="vol-title">${vol.title}</h2>
             </div>
-            <span class="vol-badge">${vol.badge}</span>
           </div>
           <div class="episodes">${eps}</div>
         </article>`;
