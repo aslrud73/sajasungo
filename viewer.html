@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#E8C87A">
+<title>만화 보기 · 사자성어 시간여행</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --c1: #F5E6C8;
+    --c2: #E8C87A;
+    --ink: #3a2410;
+    --ink-soft: #5a3a18;
+    --paper: #FFF6DC;
+    --line: #8a5a1a;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    color: var(--ink);
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    position: relative;
+    background: linear-gradient(180deg, var(--c1) 0%, var(--c2) 100%);
+  }
+
+  /* 대각선 워터마크 */
+  .watermark-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: repeating-linear-gradient(
+      -30deg,
+      transparent 0 120px,
+      rgba(58,36,16,0.8) 120px 122px
+    );
+    z-index: 1;
+  }
+
+  /* ---------- 헤더 ---------- */
+  .header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1vmin;
+    padding: 2vmin 3vmin;
+    background: linear-gradient(180deg, rgba(255,246,220,0.92), rgba(255,246,220,0.72));
+    border-bottom: 2px solid var(--line);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(36px, 6vmin, 52px);
+    height: clamp(36px, 6vmin, 52px);
+    border: 2px solid var(--line);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+  .icon-btn:active { transform: scale(0.92); }
+  .icon-btn svg { width: 55%; height: 55%; }
+
+  .header-title {
+    font-size: clamp(15px, 2.4vmin, 22px);
+    font-weight: 900;
+    color: var(--ink);
+    letter-spacing: 0.05em;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .header-title small {
+    display: block;
+    font-size: 0.65em;
+    font-weight: 700;
+    color: var(--ink-soft);
+    letter-spacing: 0.15em;
+    margin-top: 0.2em;
+  }
+  .header-watermark {
+    font-size: clamp(10px, 1.5vmin, 13px);
+    color: var(--ink-soft);
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4vmin;
+    opacity: 0.8;
+  }
+  .header-watermark svg { width: 1.1em; height: 1.1em; }
+
+  /* ---------- 진행 바 ---------- */
+  .progress {
+    position: fixed;
+    top: calc(2vmin + clamp(36px, 6vmin, 52px) + 2vmin + 2px);
+    left: 3vmin; right: 3vmin;
+    z-index: 19;
+    height: 6px;
+    background: rgba(74,42,8,0.15);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #8a5a1a, #4a2a08);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+
+  /* ---------- 메인 스테이지 ---------- */
+  .stage {
+    position: absolute;
+    top: calc(2vmin + clamp(36px, 6vmin, 52px) + 4vmin);
+    left: 0; right: 0;
+    bottom: calc(12vmin + env(safe-area-inset-bottom));
+    overflow: hidden;
+    z-index: 2;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .slide.active { display: flex; }
+  .slide[data-type="cover"],
+  .slide[data-type="lesson"],
+  .slide[data-type="quiz"],
+  .slide[data-type="result"] {
+    align-items: center;
+    justify-content: center;
+    padding: 4vmin;
+  }
+
+  /* 커버 슬라이드 */
+  .cover-card {
+    margin: auto;
+    max-width: 720px;
+    width: 100%;
+    padding: 6vmin 4vmin;
+    background: var(--paper);
+    border: 4px solid var(--line);
+    border-radius: 28px;
+    box-shadow: 0 10px 24px rgba(58,36,16,0.2);
+    text-align: center;
+  }
+  .cover-vol {
+    display: inline-block;
+    font-size: clamp(12px, 1.8vmin, 16px);
+    font-weight: 800;
+    color: var(--ink-soft);
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    padding: 0.6vmin 1.8vmin;
+    border-radius: 999px;
+    letter-spacing: 0.1em;
+    margin-bottom: 3vmin;
+  }
+  .cover-hanja {
+    font-size: clamp(40px, 9vmin, 88px);
+    font-weight: 900;
+    color: var(--ink);
+    letter-spacing: 0.15em;
+    line-height: 1.1;
+    text-shadow: 0 2px 0 rgba(138,90,26,0.3);
+  }
+  .cover-reading {
+    margin-top: 1.5vmin;
+    font-size: clamp(14px, 2.2vmin, 20px);
+    color: var(--ink-soft);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+  }
+  .cover-title {
+    margin-top: 3vmin;
+    font-size: clamp(22px, 4vmin, 34px);
+    font-weight: 900;
+    color: var(--ink);
+  }
+  .cover-meaning {
+    margin-top: 2vmin;
+    font-size: clamp(14px, 2.2vmin, 18px);
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .cover-desc {
+    margin: 3vmin auto 0;
+    max-width: 90%;
+    font-size: clamp(13px, 2vmin, 16px);
+    color: var(--ink);
+    line-height: 1.7;
+  }
+
+  /* 씬 슬라이드 — 이미지 풀스크린 (테두리/여백/배경 없음) */
+  .scene-image {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+  .scene-image .placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2vmin;
+    color: var(--ink-soft);
+    font-weight: 800;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(232,200,122,0.25) 0 20px,
+      rgba(245,230,200,0.25) 20px 40px
+    );
+  }
+  .scene-image .placeholder svg {
+    width: clamp(40px, 8vmin, 72px);
+    height: clamp(40px, 8vmin, 72px);
+    opacity: 0.6;
+  }
+  .scene-image .placeholder-label {
+    font-size: clamp(14px, 2.4vmin, 20px);
+    letter-spacing: 0.05em;
+  }
+  .scene-image .placeholder-hint {
+    font-size: clamp(11px, 1.7vmin, 14px);
+    opacity: 0.7;
+  }
+  .scene-image img {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    -webkit-user-drag: none;
+  }
+
+  /* 교훈 슬라이드 */
+  .lesson-card {
+    margin: auto;
+    max-width: 720px;
+    width: 100%;
+    padding: 6vmin 4vmin;
+    background: var(--paper);
+    border: 4px solid var(--line);
+    border-radius: 28px;
+    text-align: center;
+    box-shadow: 0 10px 24px rgba(58,36,16,0.2);
+  }
+  .lesson-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(60px, 10vmin, 96px);
+    height: clamp(60px, 10vmin, 96px);
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    border: 3px solid var(--line);
+    color: var(--ink);
+    margin-bottom: 3vmin;
+  }
+  .lesson-icon svg { width: 55%; height: 55%; }
+  .lesson-title {
+    font-size: clamp(20px, 3.6vmin, 30px);
+    font-weight: 900;
+    color: var(--ink);
+    margin-bottom: 2.5vmin;
+    letter-spacing: 0.05em;
+  }
+  .lesson-text {
+    font-size: clamp(14px, 2.3vmin, 19px);
+    color: var(--ink);
+    line-height: 1.8;
+    font-weight: 500;
+    white-space: pre-line;
+  }
+
+  /* 퀴즈 슬라이드 */
+  .quiz-card {
+    margin: auto;
+    max-width: 720px;
+    width: 100%;
+    padding: 5vmin 4vmin;
+    background: var(--paper);
+    border: 4px solid var(--line);
+    border-radius: 28px;
+    box-shadow: 0 10px 24px rgba(58,36,16,0.2);
+  }
+  .quiz-num {
+    display: inline-block;
+    font-size: clamp(12px, 1.8vmin, 15px);
+    font-weight: 800;
+    color: var(--ink-soft);
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    padding: 0.6vmin 1.8vmin;
+    border-radius: 999px;
+    letter-spacing: 0.1em;
+    margin-bottom: 2.5vmin;
+  }
+  .quiz-question {
+    font-size: clamp(16px, 2.8vmin, 24px);
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1.6;
+    margin-bottom: 3.5vmin;
+  }
+  .quiz-options {
+    display: grid;
+    gap: 1.8vmin;
+  }
+  .ox-options {
+    grid-template-columns: 1fr 1fr;
+  }
+  .quiz-opt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.4vmin;
+    padding: 3vmin 2vmin;
+    background: #fff;
+    border: 3px solid var(--line);
+    border-radius: 18px;
+    font-size: clamp(14px, 2.4vmin, 20px);
+    font-weight: 800;
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+    font-family: inherit;
+    text-align: left;
+  }
+  .ox-options .quiz-opt {
+    justify-content: center;
+    font-size: clamp(28px, 6vmin, 54px);
+  }
+  .quiz-opt:hover { background: #fffbed; }
+  .quiz-opt:active { transform: scale(0.98); }
+  .quiz-opt.correct {
+    background: #D6F0D2;
+    border-color: #4a8a3a;
+    color: #2a5a1a;
+  }
+  .quiz-opt.wrong {
+    background: #F8D2D0;
+    border-color: #8a3a30;
+    color: #5a1a10;
+  }
+  .quiz-opt[disabled] { cursor: default; }
+  .quiz-opt svg { width: 1.2em; height: 1.2em; }
+
+  .quiz-feedback {
+    margin-top: 3vmin;
+    padding: 2.5vmin 3vmin;
+    border-radius: 16px;
+    font-size: clamp(13px, 2.1vmin, 17px);
+    line-height: 1.7;
+    display: none;
+    font-weight: 600;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.ok {
+    background: #E8F6E4;
+    color: #2a5a1a;
+    border: 2px solid #8AC07A;
+  }
+  .quiz-feedback.ng {
+    background: #FBEAE8;
+    color: #5a1a10;
+    border: 2px solid #E89888;
+  }
+
+  /* 결과 슬라이드 */
+  .result-card {
+    margin: auto;
+    max-width: 720px;
+    width: 100%;
+    padding: 6vmin 4vmin;
+    background: var(--paper);
+    border: 4px solid var(--line);
+    border-radius: 28px;
+    text-align: center;
+    box-shadow: 0 10px 24px rgba(58,36,16,0.2);
+  }
+  .result-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(80px, 14vmin, 140px);
+    height: clamp(80px, 14vmin, 140px);
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    border: 4px solid var(--line);
+    color: var(--ink);
+    margin-bottom: 3vmin;
+  }
+  .result-badge svg { width: 55%; height: 55%; }
+  .result-score {
+    font-size: clamp(32px, 7vmin, 62px);
+    font-weight: 900;
+    color: var(--ink);
+    margin-bottom: 1.5vmin;
+  }
+  .result-score small {
+    font-size: 0.5em;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin-left: 0.3em;
+  }
+  .result-text {
+    font-size: clamp(14px, 2.3vmin, 18px);
+    color: var(--ink);
+    line-height: 1.7;
+    margin-bottom: 3.5vmin;
+  }
+  .result-actions {
+    display: flex;
+    gap: 2vmin;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .result-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8vmin;
+    padding: 1.8vmin 3.5vmin;
+    font-size: clamp(13px, 2.1vmin, 17px);
+    font-weight: 800;
+    color: var(--ink);
+    background: linear-gradient(180deg, #fff, var(--c1));
+    border: 3px solid var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 3px 0 var(--line);
+    transition: transform 0.1s ease;
+  }
+  .result-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+  .result-btn.primary {
+    background: linear-gradient(180deg, var(--c1), var(--c2));
+  }
+  .result-btn svg { width: 1.1em; height: 1.1em; }
+
+  /* ---------- 하단 컨트롤 ---------- */
+  .controls {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 2vmin;
+    padding: 2vmin 3vmin calc(2vmin + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(255,246,220,0.72), rgba(255,246,220,0.95));
+    border-top: 2px solid var(--line);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .ctrl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8vmin;
+    padding: 1.6vmin 3vmin;
+    font-size: clamp(13px, 2.1vmin, 17px);
+    font-weight: 800;
+    color: var(--ink);
+    background: linear-gradient(180deg, #fff, var(--c1));
+    border: 3px solid var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 3px 0 var(--line);
+    transition: transform 0.1s ease;
+  }
+  .ctrl-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+  .ctrl-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .ctrl-btn svg { width: 1.1em; height: 1.1em; }
+  .ctrl-btn.primary { background: linear-gradient(180deg, var(--c1), var(--c2)); }
+
+  .page-indicator {
+    text-align: center;
+    font-size: clamp(12px, 2vmin, 15px);
+    font-weight: 800;
+    color: var(--ink-soft);
+    letter-spacing: 0.1em;
+  }
+
+  /* 로딩/에러 */
+  .loading, .error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2vmin;
+    padding: 4vmin;
+    text-align: center;
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .loading svg, .error svg {
+    width: clamp(40px, 8vmin, 72px);
+    height: clamp(40px, 8vmin, 72px);
+  }
+  .loading svg { animation: spin 1.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- 반응형 ---------- */
+  @media print { body { display: none; } }
+
+  img { -webkit-user-drag: none; user-drag: none; }
+</style>
+</head>
+<body>
+
+  <div class="watermark-bg"></div>
+
+  <header class="header">
+    <button class="icon-btn" onclick="location.href='series.html'" aria-label="시리즈로">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </button>
+    <h1 class="header-title" id="headerTitle">
+      <span id="hTitle">사자성어</span>
+      <small id="hSubtitle">Vol.1 · 노력과 끈기</small>
+    </h1>
+    <button class="icon-btn" onclick="location.href='index.html'" aria-label="홈으로">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    </button>
+  </header>
+
+  <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+  <main class="stage" id="stage">
+    <div class="loading" id="loading">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <span>만화를 불러오는 중이에요...</span>
+    </div>
+  </main>
+
+  <nav class="controls">
+    <button class="ctrl-btn" id="prevBtn" aria-label="이전">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      <span>이전</span>
+    </button>
+    <div class="page-indicator" id="pageIndicator">1 / 1</div>
+    <button class="ctrl-btn primary" id="nextBtn" aria-label="다음">
+      <span>다음</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+  </nav>
+
+<script>
+  // ---------- 유틸 ----------
+  const qs = new URLSearchParams(location.search);
+  const EP = qs.get('ep') || '01';
+  const stage = document.getElementById('stage');
+  const loadingEl = document.getElementById('loading');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const pageIndicator = document.getElementById('pageIndicator');
+  const progressFill = document.getElementById('progressFill');
+  const hTitle = document.getElementById('hTitle');
+  const hSubtitle = document.getElementById('hSubtitle');
+
+  let data = null;
+  let slides = [];      // { type, render }
+  let current = 0;
+  let quizState = {};   // { [quizIndex]: 'correct'|'wrong' }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // ---------- 아이콘 ----------
+  const ICONS = {
+    image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+    lightbulb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    circle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>',
+    trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+    rotate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
+    library: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 6l4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>'
+  };
+
+  // ---------- 데이터 로드 (file:// 에서도 동작하도록 <script> 방식) ----------
+  function load() {
+    const script = document.createElement('script');
+    script.src = `data/ep${EP}.js`;
+    script.onload = () => {
+      const d = window.EP_DATA && window.EP_DATA[EP];
+      if (!d) {
+        showError(`ep${EP} 데이터가 window.EP_DATA["${EP}"]에 없어요.`);
+        return;
+      }
+      data = d;
+      init();
+    };
+    script.onerror = () => showError(`ep${EP}.js 파일을 찾을 수 없어요.`);
+    document.head.appendChild(script);
+  }
+
+  function showError(msg) {
+    loadingEl.remove();
+    stage.innerHTML = `
+      <div class="error">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        <div>${esc(msg)}</div>
+        <button class="ctrl-btn" onclick="location.href='series.html'">시리즈로 돌아가기</button>
+      </div>`;
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+    pageIndicator.textContent = '';
+  }
+
+  // ---------- 초기화 ----------
+  function init() {
+    // 색상 테마 적용
+    if (data.volColors) {
+      document.documentElement.style.setProperty('--c1', data.volColors.c1);
+      document.documentElement.style.setProperty('--c2', data.volColors.c2);
+    }
+
+    // 헤더
+    hTitle.textContent = data.title;
+    hSubtitle.textContent = `Vol.${data.vol} · ${data.volTitle}`;
+    document.title = `${data.title} · 사자성어 시간여행`;
+
+    // 슬라이드 빌드
+    slides = [];
+    slides.push({ type: 'cover', render: renderCover });
+    data.scenes.forEach((s, i) => slides.push({ type: 'scene', render: () => renderScene(s, i) }));
+    if (data.lesson) slides.push({ type: 'lesson', render: renderLesson });
+    (data.quiz || []).forEach((q, i) => slides.push({ type: 'quiz', render: () => renderQuiz(q, i) }));
+    slides.push({ type: 'result', render: renderResult });
+
+    loadingEl.remove();
+    current = 0;
+    go(0);
+  }
+
+  // ---------- 렌더 함수 ----------
+  function renderCover() {
+    return `
+      <div class="cover-card">
+        <span class="cover-vol">Vol.${data.vol} · ${esc(data.volTitle)}</span>
+        <div class="cover-hanja">${esc(data.hanja)}</div>
+        <div class="cover-reading">${esc(data.hanjaReading || '')}</div>
+        <div class="cover-title">${esc(data.title)}</div>
+        <div class="cover-meaning">"${esc(data.meaning)}"</div>
+        <p class="cover-desc">${esc(data.description)}</p>
+      </div>`;
+  }
+
+  function renderScene(scene, idx) {
+    return `
+      <div class="scene-image">
+        <div class="placeholder">
+          ${ICONS.image}
+          <span class="placeholder-label">장면 ${idx + 1}</span>
+          <span class="placeholder-hint">${esc(scene.image)}</span>
+        </div>
+        <img src="${esc(scene.image)}" alt="장면 ${idx + 1}"
+             onload="this.previousElementSibling.remove()"
+             onerror="this.remove()">
+      </div>`;
+  }
+
+  function renderLesson() {
+    const l = data.lesson;
+    return `
+      <div class="lesson-card">
+        <span class="lesson-icon">${ICONS.lightbulb}</span>
+        <h2 class="lesson-title">${esc(l.title || '오늘의 교훈')}</h2>
+        <p class="lesson-text">${esc(l.text)}</p>
+      </div>`;
+  }
+
+  function renderQuiz(q, idx) {
+    const total = (data.quiz || []).length;
+    let options = '';
+    if (q.type === 'ox') {
+      options = `
+        <div class="quiz-options ox-options" data-quiz-idx="${idx}">
+          <button class="quiz-opt" data-val="true">${ICONS.circle}</button>
+          <button class="quiz-opt" data-val="false">${ICONS.x}</button>
+        </div>`;
+    } else {
+      options = `
+        <div class="quiz-options" data-quiz-idx="${idx}">
+          ${q.options.map((opt, i) =>
+            `<button class="quiz-opt" data-val="${i}"><span>${esc(opt)}</span></button>`
+          ).join('')}
+        </div>`;
+    }
+    return `
+      <div class="quiz-card">
+        <span class="quiz-num">퀴즈 ${idx + 1} / ${total}</span>
+        <div class="quiz-question">${esc(q.question)}</div>
+        ${options}
+        <div class="quiz-feedback" data-feedback="${idx}"></div>
+      </div>`;
+  }
+
+  function renderResult() {
+    const total = (data.quiz || []).length;
+    const correct = Object.values(quizState).filter(v => v === 'correct').length;
+    const perfect = total > 0 && correct === total;
+    const msg = total === 0
+      ? '만화를 끝까지 읽어 주어서 고마워요!'
+      : perfect
+        ? '모든 문제를 맞혔어요! 찬이와 함께 정말 멋진 공부를 했네요.'
+        : `${total}문제 중 ${correct}문제를 맞혔어요. 다시 도전해 볼까요?`;
+    return `
+      <div class="result-card">
+        <span class="result-badge">${ICONS.trophy}</span>
+        <div class="result-score">${correct}<small>/ ${total}</small></div>
+        <p class="result-text">${esc(msg)}</p>
+        <div class="result-actions">
+          <button class="result-btn" onclick="restart()">${ICONS.rotate}<span>다시 보기</span></button>
+          <button class="result-btn primary" onclick="location.href='series.html'">${ICONS.library}<span>시리즈로</span></button>
+        </div>
+      </div>`;
+  }
+
+  // ---------- 네비게이션 ----------
+  function go(n) {
+    if (n < 0 || n >= slides.length) return;
+    current = n;
+    const slide = slides[n];
+    stage.querySelectorAll('.slide').forEach(el => el.remove());
+    const el = document.createElement('section');
+    el.className = 'slide active';
+    el.dataset.type = slide.type;
+    el.innerHTML = slide.render();
+    stage.appendChild(el);
+
+    if (slide.type === 'quiz') attachQuizHandlers(el);
+
+    updateControls();
+  }
+
+  function updateControls() {
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === slides.length - 1;
+    pageIndicator.textContent = `${current + 1} / ${slides.length}`;
+    progressFill.style.width = `${((current + 1) / slides.length) * 100}%`;
+
+    const type = slides[current]?.type;
+    const nextLabel = nextBtn.querySelector('span');
+    if (type === 'cover') nextLabel.textContent = '시작';
+    else if (current === slides.length - 2) nextLabel.textContent = '결과';
+    else if (type === 'result') nextLabel.textContent = '끝';
+    else nextLabel.textContent = '다음';
+  }
+
+  function attachQuizHandlers(slideEl) {
+    const wrap = slideEl.querySelector('.quiz-options');
+    const idx = parseInt(wrap.dataset.quizIdx, 10);
+    const q = data.quiz[idx];
+    const fb = slideEl.querySelector(`[data-feedback="${idx}"]`);
+
+    // 이미 답한 퀴즈면 상태 복원
+    if (quizState[idx]) {
+      markAnswered(wrap, q, fb, quizState[idx], quizState[`${idx}_val`]);
+      return;
+    }
+
+    wrap.querySelectorAll('.quiz-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (wrap.dataset.done) return;
+        const raw = btn.dataset.val;
+        let val = raw;
+        if (q.type === 'ox') val = raw === 'true';
+        else val = parseInt(raw, 10);
+
+        const isCorrect = (q.type === 'ox') ? (val === q.answer) : (val === q.answer);
+        quizState[idx] = isCorrect ? 'correct' : 'wrong';
+        quizState[`${idx}_val`] = raw;
+        wrap.dataset.done = '1';
+
+        markAnswered(wrap, q, fb, quizState[idx], raw);
+      });
+    });
+  }
+
+  function markAnswered(wrap, q, fb, status, chosenRaw) {
+    wrap.dataset.done = '1';
+    wrap.querySelectorAll('.quiz-opt').forEach(btn => {
+      btn.disabled = true;
+      btn.setAttribute('disabled', '');
+      const raw = btn.dataset.val;
+      let isRight = false;
+      if (q.type === 'ox') isRight = (raw === String(q.answer));
+      else isRight = (parseInt(raw, 10) === q.answer);
+      if (isRight) btn.classList.add('correct');
+      else if (raw === chosenRaw) btn.classList.add('wrong');
+    });
+    fb.className = 'quiz-feedback show ' + (status === 'correct' ? 'ok' : 'ng');
+    fb.textContent = (status === 'correct' ? '정답이에요! ' : '아쉬워요. ') + q.explain;
+  }
+
+  function restart() {
+    quizState = {};
+    go(0);
+  }
+  window.restart = restart;
+
+  prevBtn.addEventListener('click', () => go(current - 1));
+  nextBtn.addEventListener('click', () => go(current + 1));
+
+  // 키보드
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(current - 1); }
+    else if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(current + 1); }
+  });
+
+  // 터치 스와이프
+  let tx = 0, ty = 0;
+  stage.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    tx = e.touches[0].clientX;
+    ty = e.touches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', e => {
+    if (!tx) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - tx;
+    const dy = t.clientY - ty;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) go(current + 1);
+      else go(current - 1);
+    }
+    tx = 0; ty = 0;
+  }, { passive: true });
+
+  // ---------- 보안 ----------
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('selectstart', e => e.preventDefault());
+  document.addEventListener('keydown', e => {
+    const k = (e.key || '').toUpperCase();
+    if (
+      e.key === 'F12' ||
+      (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C')) ||
+      (e.ctrlKey && (k === 'U' || k === 'S' || k === 'P'))
+    ) { e.preventDefault(); return false; }
+  });
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  let lastTouch = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouch <= 300) e.preventDefault();
+    lastTouch = now;
+  }, { passive: false });
+
+  // 시작
+  load();
+</script>
+
+</body>
+</html>

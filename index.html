@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#E8C87A">
+<title>사자성어 시간여행 · 꼬마나라 AI 티처랩</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    position: relative;
+    color: #3a2410;
+    background: #2a1a0a;
+  }
+
+  /* ---------- 배경 (placeholder + 실제 이미지) ---------- */
+  .stage-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse at 50% 20%, rgba(255,240,200,0.55), transparent 60%),
+      linear-gradient(180deg, #F5E6C8 0%, #D4A040 45%, #6A4410 100%);
+  }
+  .stage-bg.loaded {
+    background-image: url("assets/bg.webp");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .stage-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(180deg, rgba(245,230,200,0.20) 0%, rgba(0,0,0,0) 40%, rgba(58,36,16,0.35) 100%);
+    pointer-events: none;
+  }
+
+  /* 대각선 반복 워터마크 */
+  .watermark-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.06;
+    background-image: repeating-linear-gradient(
+      -30deg,
+      transparent 0 120px,
+      rgba(58,36,16,0.8) 120px 122px
+    );
+    z-index: 2;
+  }
+
+  /* 우상단 배지 워터마크 */
+  .watermark {
+    position: absolute;
+    top: 2vmin;
+    right: 3vmin;
+    font-size: clamp(11px, 1.6vmin, 16px);
+    color: rgba(255, 250, 235, 0.75);
+    background: rgba(58, 36, 16, 0.4);
+    padding: 0.6vmin 1.4vmin;
+    border-radius: 999px;
+    letter-spacing: 0.05em;
+    z-index: 20;
+    pointer-events: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6vmin;
+  }
+  .watermark svg { width: 1.2em; height: 1.2em; }
+
+  /* ---------- 타이틀 ---------- */
+  .title-wrap {
+    position: absolute;
+    top: 7vmin;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 10;
+    width: 90%;
+  }
+  .title {
+    font-size: clamp(28px, 7vmin, 84px);
+    font-weight: 900;
+    color: #3D1F0A;
+    text-shadow:
+      0 1px 0 rgba(255,255,255,0.8),
+      0 0 14px rgba(255,255,255,0.9),
+      0 2px 8px rgba(255,255,255,0.7);
+    letter-spacing: 0.02em;
+  }
+  .subtitle {
+    margin-top: 1.2vmin;
+    font-size: clamp(13px, 2.2vmin, 22px);
+    color: #3D1F0A;
+    text-shadow:
+      0 1px 0 rgba(255,255,255,0.8),
+      0 0 10px rgba(255,255,255,0.9);
+    letter-spacing: 0.15em;
+    font-weight: 700;
+  }
+
+  /* ---------- 시작 버튼 ---------- */
+  .start-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 2.4vmin 7vmin;
+    font-size: clamp(16px, 3vmin, 28px);
+    font-weight: 800;
+    color: #4a2a08;
+    background: linear-gradient(180deg, #F5E6C8 0%, #E8C87A 100%);
+    border: 3px solid #8a5a1a;
+    border-radius: 999px;
+    box-shadow:
+      0 4px 0 #6a4410,
+      0 8px 20px rgba(0,0,0,0.35);
+    cursor: pointer;
+    z-index: 10;
+    letter-spacing: 0.08em;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 1.2vmin;
+  }
+  .start-btn svg { width: 1.2em; height: 1.2em; }
+  .start-btn:active {
+    transform: translate(-50%, calc(-50% + 3px));
+    box-shadow: 0 1px 0 #6a4410, 0 4px 10px rgba(0,0,0,0.35);
+  }
+
+  /* ---------- 하단 메뉴 ---------- */
+  .bottom-nav {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: linear-gradient(180deg, rgba(58,36,16,0.72) 0%, rgba(32,18,6,0.92) 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-top: 2px solid rgba(232,200,122,0.55);
+    z-index: 15;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6vmin;
+    padding: 2vmin 1vmin;
+    color: #FFF6DC;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: clamp(11px, 1.9vmin, 18px);
+    transition: background 0.15s ease;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+  }
+  .nav-item:hover,
+  .nav-item:active { background: rgba(232,200,122,0.18); }
+  .nav-item svg {
+    width: clamp(22px, 4vmin, 38px);
+    height: clamp(22px, 4vmin, 38px);
+  }
+
+  /* ---------- 푸터 ---------- */
+  .footer {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 11vmin;
+    font-size: clamp(10px, 1.5vmin, 14px);
+    color: rgba(255, 246, 220, 0.7);
+    text-align: center;
+    z-index: 10;
+    letter-spacing: 0.05em;
+    pointer-events: none;
+  }
+
+  /* ---------- 반응형 ---------- */
+  @media (orientation: portrait) and (max-width: 768px) {
+    .footer { bottom: 13vmin; }
+  }
+
+  @media (min-width: 1600px) {
+    .title { font-size: 96px; }
+    .subtitle { font-size: 26px; }
+    .nav-item { font-size: 20px; }
+  }
+
+  @media print { body { display: none; } }
+</style>
+</head>
+<body>
+
+  <div class="stage-bg"></div>
+  <div class="stage-overlay"></div>
+  <div class="watermark-bg"></div>
+
+  <div class="watermark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5z"/></svg>
+    <span>꼬마나라 AI 티처랩</span>
+  </div>
+
+  <div class="title-wrap">
+    <h1 class="title">사자성어 시간여행</h1>
+    <p class="subtitle">찬이와 함께 떠나는 옛이야기 모험</p>
+  </div>
+
+  <button class="start-btn" onclick="location.href='series.html'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+    <span>시 작 하 기</span>
+  </button>
+
+  <div class="footer">© 2025 꼬마나라 AI 티처랩</div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item" onclick="location.href='series.html'" aria-label="만화보기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+      <span>만화보기</span>
+    </button>
+    <button class="nav-item" onclick="location.href='quiz.html'" aria-label="OX퀴즈">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+      <span>OX퀴즈</span>
+    </button>
+    <button class="nav-item" onclick="location.href='series.html'" aria-label="시리즈">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 6l4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
+      <span>시리즈</span>
+    </button>
+    <button class="nav-item" onclick="location.href='mylearning.html'" aria-label="내학습">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>
+      <span>내학습</span>
+    </button>
+  </nav>
+
+<script>
+  // 배경 이미지 로드 시도
+  (function () {
+    const probe = new Image();
+    probe.onload = () => document.querySelector('.stage-bg').classList.add('loaded');
+    probe.src = 'assets/bg.webp';
+  })();
+
+  // 우클릭 / 드래그 / 선택 차단
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('selectstart', e => e.preventDefault());
+
+  // 개발자도구 단축키 차단
+  document.addEventListener('keydown', e => {
+    const k = (e.key || '').toUpperCase();
+    if (
+      e.key === 'F12' ||
+      (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C')) ||
+      (e.ctrlKey && (k === 'U' || k === 'S' || k === 'P'))
+    ) {
+      e.preventDefault();
+      return false;
+    }
+  });
+
+  // 모바일 멀티터치 / 더블탭 확대 차단
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
+  let lastTouch = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouch <= 300) e.preventDefault();
+    lastTouch = now;
+  }, { passive: false });
+</script>
+
+</body>
+</html>
