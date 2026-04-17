@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#E8C87A">
+<title>OX 퀴즈 · 사자성어 시간여행</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --c1: #F5E6C8;
+    --c2: #E8C87A;
+    --ink: #3a2410;
+    --ink-soft: #5a3a18;
+    --paper: #FFF6DC;
+    --line: #8a5a1a;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    color: var(--ink);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body { background: linear-gradient(180deg, var(--c1) 0%, var(--c2) 100%); }
+
+  .watermark-bg {
+    position: fixed; inset: 0; pointer-events: none;
+    opacity: 0.05; z-index: 1;
+    background-image: repeating-linear-gradient(-30deg, transparent 0 120px, rgba(58,36,16,0.8) 120px 122px);
+  }
+
+  /* 헤더 */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 1vmin;
+    padding: 2vmin 3vmin;
+    background: linear-gradient(180deg, rgba(255,246,220,0.92), rgba(255,246,220,0.72));
+    border-bottom: 2px solid var(--line);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(36px, 6vmin, 52px); height: clamp(36px, 6vmin, 52px);
+    border: 2px solid var(--line); border-radius: 50%;
+    background: var(--paper); color: var(--ink);
+    cursor: pointer; transition: transform 0.1s ease;
+  }
+  .icon-btn:active { transform: scale(0.92); }
+  .icon-btn svg { width: 55%; height: 55%; }
+  .header-title {
+    font-size: clamp(16px, 2.6vmin, 24px);
+    font-weight: 900; color: var(--ink);
+    letter-spacing: 0.05em; text-align: center;
+  }
+  .header-title small {
+    display: block; font-size: 0.6em; font-weight: 700;
+    color: var(--ink-soft); letter-spacing: 0.15em; margin-top: 0.2em;
+  }
+
+  /* 진행 바 */
+  .progress {
+    position: fixed; z-index: 19; height: 6px;
+    top: calc(2vmin + clamp(36px, 6vmin, 52px) + 2vmin + 2px);
+    left: 3vmin; right: 3vmin;
+    background: rgba(74,42,8,0.15); border-radius: 999px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #8a5a1a, #4a2a08);
+    border-radius: 999px; transition: width 0.3s ease;
+  }
+
+  /* 메인 스테이지 */
+  .stage {
+    position: absolute;
+    top: calc(2vmin + clamp(36px, 6vmin, 52px) + 4vmin);
+    left: 0; right: 0;
+    bottom: calc(12vmin + env(safe-area-inset-bottom));
+    overflow: hidden; z-index: 2;
+  }
+  .slide {
+    position: absolute; inset: 0; display: none;
+    align-items: center; justify-content: center;
+    padding: 4vmin; overflow-y: auto;
+  }
+  .slide.active { display: flex; }
+
+  /* 퀴즈 카드 */
+  .quiz-card {
+    max-width: 720px; width: 100%;
+    padding: 5vmin 4vmin;
+    background: var(--paper);
+    border: 4px solid var(--line); border-radius: 28px;
+    box-shadow: 0 10px 24px rgba(58,36,16,0.2);
+  }
+  .quiz-source {
+    display: inline-flex; align-items: center; gap: 1vmin;
+    font-size: clamp(11px, 1.7vmin, 14px);
+    font-weight: 800; color: var(--ink-soft);
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    padding: 0.6vmin 1.6vmin; border-radius: 999px;
+    letter-spacing: 0.1em; margin-bottom: 2vmin;
+  }
+  .quiz-source svg { width: 1.1em; height: 1.1em; }
+  .quiz-num {
+    display: inline-block;
+    font-size: clamp(11px, 1.7vmin, 14px);
+    font-weight: 800; color: var(--ink-soft);
+    margin-left: 1vmin;
+  }
+  .quiz-question {
+    font-size: clamp(16px, 2.8vmin, 24px);
+    font-weight: 800; color: var(--ink);
+    line-height: 1.6; margin-bottom: 3.5vmin;
+  }
+  .quiz-options {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1.8vmin;
+  }
+  .quiz-opt {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 3vmin 2vmin;
+    background: #fff;
+    border: 3px solid var(--line); border-radius: 18px;
+    font-size: clamp(28px, 6vmin, 54px);
+    color: var(--ink); cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .quiz-opt:hover { background: #fffbed; }
+  .quiz-opt:active { transform: scale(0.98); }
+  .quiz-opt.correct { background: #D6F0D2; border-color: #4a8a3a; color: #2a5a1a; }
+  .quiz-opt.wrong   { background: #F8D2D0; border-color: #8a3a30; color: #5a1a10; }
+  .quiz-opt[disabled] { cursor: default; }
+  .quiz-opt svg { width: 1.2em; height: 1.2em; }
+
+  .quiz-feedback {
+    margin-top: 3vmin; padding: 2.5vmin 3vmin;
+    border-radius: 16px;
+    font-size: clamp(13px, 2.1vmin, 17px);
+    line-height: 1.7; font-weight: 600;
+    display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.ok { background: #E8F6E4; color: #2a5a1a; border: 2px solid #8AC07A; }
+  .quiz-feedback.ng { background: #FBEAE8; color: #5a1a10; border: 2px solid #E89888; }
+
+  /* 결과 카드 */
+  .result-card {
+    max-width: 720px; width: 100%;
+    padding: 6vmin 4vmin;
+    background: var(--paper);
+    border: 4px solid var(--line); border-radius: 28px;
+    text-align: center;
+    box-shadow: 0 10px 24px rgba(58,36,16,0.2);
+  }
+  .result-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(80px, 14vmin, 140px); height: clamp(80px, 14vmin, 140px);
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    border: 4px solid var(--line); color: var(--ink);
+    margin-bottom: 3vmin;
+  }
+  .result-badge svg { width: 55%; height: 55%; }
+  .result-score {
+    font-size: clamp(32px, 7vmin, 62px);
+    font-weight: 900; color: var(--ink);
+    margin-bottom: 1.5vmin;
+  }
+  .result-score small {
+    font-size: 0.5em; font-weight: 700;
+    color: var(--ink-soft); margin-left: 0.3em;
+  }
+  .result-text {
+    font-size: clamp(14px, 2.3vmin, 18px);
+    color: var(--ink); line-height: 1.7;
+    margin-bottom: 3.5vmin;
+  }
+  .result-actions {
+    display: flex; gap: 2vmin; justify-content: center; flex-wrap: wrap;
+  }
+  .result-btn {
+    display: inline-flex; align-items: center; gap: 0.8vmin;
+    padding: 1.8vmin 3.5vmin;
+    font-size: clamp(13px, 2.1vmin, 17px);
+    font-weight: 800; color: var(--ink);
+    background: linear-gradient(180deg, #fff, var(--c1));
+    border: 3px solid var(--line); border-radius: 999px;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 3px 0 var(--line);
+    transition: transform 0.1s ease;
+  }
+  .result-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+  .result-btn.primary { background: linear-gradient(180deg, var(--c1), var(--c2)); }
+  .result-btn svg { width: 1.1em; height: 1.1em; }
+
+  /* 로딩/에러 */
+  .loading, .error {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2vmin; text-align: center; padding: 4vmin;
+    color: var(--ink); font-weight: 700;
+  }
+  .loading svg, .error svg {
+    width: clamp(40px, 8vmin, 72px); height: clamp(40px, 8vmin, 72px);
+  }
+  .loading svg { animation: spin 1.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 컨트롤 */
+  .controls {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 2vmin;
+    padding: 2vmin 3vmin calc(2vmin + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(255,246,220,0.72), rgba(255,246,220,0.95));
+    border-top: 2px solid var(--line);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .ctrl-btn {
+    display: inline-flex; align-items: center; gap: 0.8vmin;
+    padding: 1.6vmin 3vmin;
+    font-size: clamp(13px, 2.1vmin, 17px);
+    font-weight: 800; color: var(--ink);
+    background: linear-gradient(180deg, #fff, var(--c1));
+    border: 3px solid var(--line); border-radius: 999px;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 3px 0 var(--line);
+    transition: transform 0.1s ease;
+  }
+  .ctrl-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+  .ctrl-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .ctrl-btn svg { width: 1.1em; height: 1.1em; }
+  .ctrl-btn.primary { background: linear-gradient(180deg, var(--c1), var(--c2)); }
+  .page-indicator {
+    text-align: center;
+    font-size: clamp(12px, 2vmin, 15px);
+    font-weight: 800; color: var(--ink-soft);
+    letter-spacing: 0.1em;
+  }
+
+  @media print { body { display: none; } }
+</style>
+</head>
+<body>
+
+  <div class="watermark-bg"></div>
+
+  <header class="header">
+    <button class="icon-btn" onclick="history.length>1 ? history.back() : location.href='index.html'" aria-label="뒤로">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </button>
+    <h1 class="header-title">
+      <span>OX 퀴즈</span>
+      <small id="hSubtitle">전체 사자성어</small>
+    </h1>
+    <button class="icon-btn" onclick="location.href='index.html'" aria-label="홈으로">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    </button>
+  </header>
+
+  <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+  <main class="stage" id="stage">
+    <div class="loading" id="loading">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <span>퀴즈를 불러오는 중이에요...</span>
+    </div>
+  </main>
+
+  <nav class="controls">
+    <button class="ctrl-btn" id="prevBtn" aria-label="이전">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      <span>이전</span>
+    </button>
+    <div class="page-indicator" id="pageIndicator">0 / 0</div>
+    <button class="ctrl-btn primary" id="nextBtn" aria-label="다음">
+      <span>다음</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+  </nav>
+
+<script>
+  // ---- 어떤 에피소드 퀴즈를 쓸지 ----
+  // 지금은 ep01만. 나중에 ['01','02','03'] 처럼 추가하면 자동 확장됨.
+  const EP_IDS = ['01'];
+
+  // ---- DOM ----
+  const stage = document.getElementById('stage');
+  const loadingEl = document.getElementById('loading');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const pageIndicator = document.getElementById('pageIndicator');
+  const progressFill = document.getElementById('progressFill');
+  const hSubtitle = document.getElementById('hSubtitle');
+
+  // ---- 상태 ----
+  let quizzes = [];      // { epId, epTitle, epVol, epHanja, volColors, question, answer, explain }
+  let current = 0;
+  let answers = {};      // { [idx]: 'correct'|'wrong' }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  const ICONS = {
+    circle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+    rotate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>'
+  };
+
+  // ---- 로드 ----
+  function loadOne(epId) {
+    return new Promise((resolve, reject) => {
+      if (window.EP_DATA && window.EP_DATA[epId]) return resolve(window.EP_DATA[epId]);
+      const s = document.createElement('script');
+      s.src = `data/ep${epId}.js`;
+      s.onload = () => resolve(window.EP_DATA && window.EP_DATA[epId]);
+      s.onerror = () => reject(new Error(`ep${epId}.js 없음`));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function loadAll() {
+    try {
+      const eps = await Promise.all(EP_IDS.map(loadOne));
+      quizzes = [];
+      eps.forEach(ep => {
+        if (!ep || !ep.quiz) return;
+        ep.quiz.filter(q => q.type === 'ox').forEach(q => {
+          quizzes.push({
+            epId: ep.id,
+            epTitle: ep.title,
+            epVol: ep.vol,
+            epHanja: ep.hanja,
+            volColors: ep.volColors,
+            question: q.question,
+            answer: q.answer,
+            explain: q.explain
+          });
+        });
+      });
+      if (!quizzes.length) { showError('사용할 OX 퀴즈가 없어요.'); return; }
+      hSubtitle.textContent = `${EP_IDS.length}편 · 총 ${quizzes.length}문제`;
+      loadingEl.remove();
+      current = 0;
+      render();
+    } catch (err) {
+      showError(err.message || '퀴즈를 불러오지 못했어요.');
+    }
+  }
+
+  function showError(msg) {
+    if (loadingEl) loadingEl.remove();
+    stage.innerHTML = `
+      <div class="error">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        <div>${esc(msg)}</div>
+        <button class="ctrl-btn" onclick="location.href='index.html'">홈으로</button>
+      </div>`;
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+    pageIndicator.textContent = '';
+  }
+
+  // ---- 렌더 ----
+  function render() {
+    stage.querySelectorAll('.slide').forEach(el => el.remove());
+
+    const isResult = current >= quizzes.length;
+    const slide = document.createElement('section');
+    slide.className = 'slide active';
+    slide.innerHTML = isResult ? renderResult() : renderQuiz(current);
+    stage.appendChild(slide);
+
+    if (!isResult) attachQuizHandlers(slide, current);
+
+    updateControls(isResult);
+  }
+
+  function renderQuiz(i) {
+    const q = quizzes[i];
+    const c1 = q.volColors?.c1 || '#F5E6C8';
+    const c2 = q.volColors?.c2 || '#E8C87A';
+    return `
+      <article class="quiz-card" style="--c1:${c1};--c2:${c2}">
+        <span class="quiz-source">
+          ${ICONS.book}
+          <span>Vol.${q.epVol} · ${esc(q.epTitle)} <small style="opacity:0.7">(${esc(q.epHanja)})</small></span>
+        </span>
+        <span class="quiz-num">문제 ${i + 1} / ${quizzes.length}</span>
+        <div class="quiz-question">${esc(q.question)}</div>
+        <div class="quiz-options" data-idx="${i}">
+          <button class="quiz-opt" data-val="true">${ICONS.circle}</button>
+          <button class="quiz-opt" data-val="false">${ICONS.x}</button>
+        </div>
+        <div class="quiz-feedback" data-feedback="${i}"></div>
+      </article>`;
+  }
+
+  function renderResult() {
+    const correct = Object.values(answers).filter(v => v === 'correct').length;
+    const total = quizzes.length;
+    const perfect = total > 0 && correct === total;
+    const msg = perfect
+      ? '모든 문제를 맞혔어요! 정말 대단해요.'
+      : `${total}문제 중 ${correct}문제를 맞혔어요. 만화를 한 번 더 읽고 도전해 볼까요?`;
+    return `
+      <div class="result-card">
+        <span class="result-badge">${ICONS.trophy}</span>
+        <div class="result-score">${correct}<small>/ ${total}</small></div>
+        <p class="result-text">${esc(msg)}</p>
+        <div class="result-actions">
+          <button class="result-btn" onclick="restart()">${ICONS.rotate}<span>다시 풀기</span></button>
+          <button class="result-btn primary" onclick="location.href='index.html'">${ICONS.home}<span>홈으로</span></button>
+        </div>
+      </div>`;
+  }
+
+  function attachQuizHandlers(slideEl, i) {
+    const wrap = slideEl.querySelector('.quiz-options');
+    const q = quizzes[i];
+    const fb = slideEl.querySelector(`[data-feedback="${i}"]`);
+
+    if (answers[i]) {
+      mark(wrap, q, fb, answers[i], answers[`${i}_val`]);
+      return;
+    }
+    wrap.querySelectorAll('.quiz-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (wrap.dataset.done) return;
+        const raw = btn.dataset.val;
+        const val = raw === 'true';
+        const isCorrect = val === q.answer;
+        answers[i] = isCorrect ? 'correct' : 'wrong';
+        answers[`${i}_val`] = raw;
+        wrap.dataset.done = '1';
+        mark(wrap, q, fb, answers[i], raw);
+      });
+    });
+  }
+
+  function mark(wrap, q, fb, status, chosenRaw) {
+    wrap.dataset.done = '1';
+    wrap.querySelectorAll('.quiz-opt').forEach(btn => {
+      btn.disabled = true;
+      btn.setAttribute('disabled', '');
+      const raw = btn.dataset.val;
+      const isRight = (raw === String(q.answer));
+      if (isRight) btn.classList.add('correct');
+      else if (raw === chosenRaw) btn.classList.add('wrong');
+    });
+    fb.className = 'quiz-feedback show ' + (status === 'correct' ? 'ok' : 'ng');
+    fb.textContent = (status === 'correct' ? '정답이에요! ' : '아쉬워요. ') + q.explain;
+  }
+
+  function updateControls(isResult) {
+    prevBtn.disabled = current === 0;
+    const totalSteps = quizzes.length + 1; // +1 for result
+    const stepNow = current + 1;
+    nextBtn.disabled = isResult;
+    pageIndicator.textContent = isResult ? '완료' : `${stepNow} / ${quizzes.length}`;
+    progressFill.style.width = `${(stepNow / totalSteps) * 100}%`;
+
+    const label = nextBtn.querySelector('span');
+    if (isResult) label.textContent = '끝';
+    else if (current === quizzes.length - 1) label.textContent = '결과';
+    else label.textContent = '다음';
+  }
+
+  function go(n) {
+    if (n < 0 || n > quizzes.length) return;
+    current = n;
+    render();
+  }
+
+  function restart() {
+    answers = {};
+    go(0);
+  }
+  window.restart = restart;
+
+  prevBtn.addEventListener('click', () => go(current - 1));
+  nextBtn.addEventListener('click', () => go(current + 1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(current - 1); }
+    else if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(current + 1); }
+  });
+
+  // 보안
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('selectstart', e => e.preventDefault());
+  document.addEventListener('keydown', e => {
+    const k = (e.key || '').toUpperCase();
+    if (e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C')) ||
+        (e.ctrlKey && (k === 'U' || k === 'S' || k === 'P'))) {
+      e.preventDefault(); return false;
+    }
+  });
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  let lastTouch = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouch <= 300) e.preventDefault();
+    lastTouch = now;
+  }, { passive: false });
+
+  loadAll();
+</script>
+
+</body>
+</html>

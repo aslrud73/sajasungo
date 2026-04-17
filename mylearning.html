@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#E8C87A">
+<title>내 학습 · 사자성어 시간여행</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; min-height: 100%;
+    font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    color: #3a2410;
+    background: #FBF5E6;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    min-height: 100vh;
+    padding-bottom: calc(12vmin + env(safe-area-inset-bottom));
+    background:
+      radial-gradient(ellipse at top, #FFF2D2 0%, transparent 60%),
+      linear-gradient(180deg, #FBF5E6 0%, #F0E2C0 100%);
+    background-attachment: fixed;
+  }
+
+  .watermark-bg {
+    position: fixed; inset: 0; pointer-events: none;
+    opacity: 0.05; z-index: 1;
+    background-image: repeating-linear-gradient(-30deg, transparent 0 120px, rgba(58,36,16,0.8) 120px 122px);
+  }
+
+  /* 헤더 */
+  .header {
+    position: sticky; top: 0; z-index: 20;
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 1vmin;
+    padding: 2vmin 3vmin;
+    background: linear-gradient(180deg, #F5E6C8 0%, #E8C87A 100%);
+    border-bottom: 2px solid #8a5a1a;
+    box-shadow: 0 4px 12px rgba(58,36,16,0.15);
+  }
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(36px, 6vmin, 52px); height: clamp(36px, 6vmin, 52px);
+    border: 2px solid #8a5a1a; border-radius: 50%;
+    background: #FFF6DC; color: #4a2a08;
+    cursor: pointer; transition: transform 0.1s ease;
+  }
+  .icon-btn:active { transform: scale(0.92); }
+  .icon-btn svg { width: 55%; height: 55%; }
+  .header-title {
+    font-size: clamp(18px, 3vmin, 28px);
+    font-weight: 900; color: #4a2a08;
+    letter-spacing: 0.05em; text-align: center;
+  }
+
+  /* 컨테이너 */
+  .wrap {
+    position: relative; z-index: 2;
+    max-width: 1200px; margin: 0 auto;
+    padding: 4vmin 3vmin 2vmin;
+  }
+
+  /* 요약 카드 */
+  .summary {
+    background: #FFF6DC;
+    border: 3px solid #8a5a1a; border-radius: 24px;
+    padding: 4vmin;
+    box-shadow: 0 6px 16px rgba(58,36,16,0.15);
+    margin-bottom: 4vmin;
+  }
+  .summary-top {
+    display: flex; align-items: center; gap: 3vmin;
+    flex-wrap: wrap;
+    margin-bottom: 3vmin;
+  }
+  .summary-circle {
+    position: relative;
+    width: clamp(90px, 16vmin, 150px);
+    height: clamp(90px, 16vmin, 150px);
+    flex-shrink: 0;
+  }
+  .summary-circle svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .summary-circle .ring-bg { fill: none; stroke: rgba(138,90,26,0.15); stroke-width: 10; }
+  .summary-circle .ring-fg {
+    fill: none; stroke: #8a5a1a; stroke-width: 10;
+    stroke-linecap: round; transition: stroke-dashoffset 0.6s ease;
+  }
+  .summary-circle .pct {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(18px, 3.4vmin, 30px);
+    font-weight: 900; color: #4a2a08;
+  }
+  .summary-text { flex: 1; min-width: 200px; }
+  .summary-title {
+    font-size: clamp(16px, 2.6vmin, 22px);
+    font-weight: 800; color: #4a2a08;
+    margin-bottom: 1vmin;
+  }
+  .summary-big {
+    font-size: clamp(24px, 5vmin, 44px);
+    font-weight: 900; color: #3a2410;
+    line-height: 1.1;
+  }
+  .summary-big small {
+    font-size: 0.5em; font-weight: 700;
+    color: rgba(74,42,8,0.65); margin-left: 0.4em;
+  }
+  .summary-hint {
+    margin-top: 1.2vmin;
+    font-size: clamp(12px, 1.9vmin, 15px);
+    color: rgba(74,42,8,0.75);
+    line-height: 1.5;
+  }
+
+  .vol-bars {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 1.6vmin 2.4vmin;
+  }
+  @media (min-width: 900px) {
+    .vol-bars { grid-template-columns: repeat(5, 1fr); }
+  }
+  .vol-bar {
+    display: flex; flex-direction: column; gap: 0.6vmin;
+  }
+  .vol-bar-label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: clamp(10px, 1.5vmin, 13px);
+    font-weight: 800; color: #4a2a08;
+  }
+  .vol-bar-label .num { opacity: 0.7; }
+  .vol-bar-track {
+    height: 8px; border-radius: 999px;
+    background: rgba(74,42,8,0.12);
+    overflow: hidden;
+  }
+  .vol-bar-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--c1), var(--c2));
+    transition: width 0.6s ease;
+  }
+
+  /* 볼륨 카드 (series와 유사) */
+  .volumes {
+    display: grid; grid-template-columns: 1fr; gap: 4vmin;
+  }
+  @media (min-width: 900px)  { .volumes { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1400px) { .volumes { grid-template-columns: 1fr 1fr 1fr; } }
+
+  .vol-card {
+    position: relative;
+    background: linear-gradient(135deg, var(--c1) 0%, var(--c2) 100%);
+    border-radius: 24px;
+    padding: 3vmin;
+    box-shadow: 0 6px 0 rgba(58,36,16,0.15), 0 10px 24px rgba(58,36,16,0.2);
+    overflow: hidden;
+  }
+  .vol-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(-30deg, transparent 0 80px, rgba(255,255,255,0.08) 80px 82px);
+    pointer-events: none;
+  }
+  .vol-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 2vmin; margin-bottom: 2.5vmin;
+    position: relative;
+  }
+  .vol-header-left {
+    display: flex; align-items: baseline; gap: 1.5vmin;
+    flex-wrap: wrap;
+  }
+  .vol-num {
+    font-size: clamp(14px, 2.2vmin, 20px);
+    font-weight: 800; color: #4a2a08;
+    background: rgba(255,255,255,0.45);
+    padding: 0.6vmin 1.4vmin; border-radius: 999px;
+    letter-spacing: 0.05em;
+  }
+  .vol-title {
+    font-size: clamp(18px, 3.2vmin, 30px);
+    font-weight: 900; color: #3a2410;
+    letter-spacing: 0.03em;
+  }
+  .vol-progress {
+    font-size: clamp(12px, 1.8vmin, 15px);
+    font-weight: 800; color: #4a2a08;
+    background: rgba(255,255,255,0.55);
+    padding: 0.5vmin 1.4vmin; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 0.5vmin;
+  }
+  .vol-progress svg { width: 1.1em; height: 1.1em; }
+
+  .episodes {
+    display: grid; grid-template-columns: 1fr; gap: 1.4vmin;
+    position: relative;
+  }
+  @media (min-width: 500px) { .episodes { grid-template-columns: 1fr 1fr; } }
+
+  .ep {
+    display: flex; align-items: center; gap: 1.6vmin;
+    padding: 1.8vmin 2vmin;
+    background: rgba(255,255,255,0.72);
+    border: 2px solid rgba(74,42,8,0.25);
+    border-radius: 16px;
+    text-decoration: none;
+    color: #3a2410;
+    font-weight: 700;
+    font-size: clamp(13px, 2.2vmin, 18px);
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  }
+  .ep:hover, .ep:active {
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.92);
+    border-color: rgba(74,42,8,0.5);
+  }
+  .ep.done {
+    background: rgba(214,240,210,0.92);
+    border-color: #4a8a3a;
+  }
+  .ep.done .ep-num {
+    background: #4a8a3a;
+  }
+  .ep.locked { opacity: 0.55; cursor: not-allowed; }
+
+  .ep-num {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(26px, 4vmin, 36px); height: clamp(26px, 4vmin, 36px);
+    border-radius: 50%;
+    background: #4a2a08; color: #FFF6DC;
+    font-weight: 900;
+    font-size: clamp(12px, 2vmin, 16px);
+  }
+  .ep-num svg { width: 60%; height: 60%; }
+  .ep-title { flex: 1 1 auto; letter-spacing: 0.02em; }
+  .ep-icon {
+    flex: 0 0 auto;
+    width: clamp(18px, 2.6vmin, 22px);
+    height: clamp(18px, 2.6vmin, 22px);
+    color: rgba(74,42,8,0.5);
+  }
+  .ep.done .ep-icon { color: #4a8a3a; }
+  .ep.locked .ep-icon { color: rgba(74,42,8,0.7); }
+
+  /* 초기화 버튼 */
+  .reset-wrap {
+    margin-top: 4vmin; text-align: center;
+  }
+  .reset-btn {
+    display: inline-flex; align-items: center; gap: 0.8vmin;
+    padding: 1.4vmin 3vmin;
+    font-size: clamp(12px, 1.9vmin, 15px);
+    font-weight: 800; color: rgba(74,42,8,0.75);
+    background: transparent;
+    border: 2px solid rgba(74,42,8,0.3);
+    border-radius: 999px;
+    cursor: pointer; font-family: inherit;
+  }
+  .reset-btn:hover { background: rgba(74,42,8,0.08); color: #4a2a08; border-color: #8a5a1a; }
+  .reset-btn svg { width: 1.1em; height: 1.1em; }
+
+  .footer {
+    text-align: center;
+    padding: 4vmin 2vmin 2vmin;
+    font-size: clamp(11px, 1.6vmin, 14px);
+    color: rgba(74,42,8,0.6);
+    letter-spacing: 0.05em;
+    position: relative; z-index: 2;
+  }
+
+  /* 하단 메뉴 */
+  .bottom-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: linear-gradient(180deg, rgba(58,36,16,0.92) 0%, rgba(32,18,6,0.98) 100%);
+    border-top: 2px solid rgba(232,200,122,0.55);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-item {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.6vmin; padding: 2vmin 1vmin;
+    color: #FFF6DC; font-weight: 700;
+    font-size: clamp(11px, 1.9vmin, 18px);
+    transition: background 0.15s ease;
+    cursor: pointer; border: none;
+    background: transparent; font-family: inherit;
+  }
+  .nav-item.active { color: #F5E6C8; background: rgba(232,200,122,0.18); }
+  .nav-item:hover, .nav-item:active { background: rgba(232,200,122,0.18); }
+  .nav-item svg {
+    width: clamp(22px, 4vmin, 38px);
+    height: clamp(22px, 4vmin, 38px);
+  }
+
+  @media print { body { display: none; } }
+</style>
+</head>
+<body>
+
+  <div class="watermark-bg"></div>
+
+  <header class="header">
+    <button class="icon-btn" onclick="history.length>1 ? history.back() : location.href='index.html'" aria-label="뒤로">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </button>
+    <h1 class="header-title">내 학습</h1>
+    <button class="icon-btn" onclick="location.href='index.html'" aria-label="홈으로">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    </button>
+  </header>
+
+  <main class="wrap">
+    <section class="summary" id="summary"></section>
+    <section class="volumes" id="volumes"></section>
+
+    <div class="reset-wrap">
+      <button class="reset-btn" onclick="resetProgress()" aria-label="학습 기록 초기화">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="m19 6-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        <span>학습 기록 초기화</span>
+      </button>
+    </div>
+  </main>
+
+  <div class="footer">© 2025 꼬마나라 AI 티처랩</div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item" onclick="location.href='viewer.html?ep=01'" aria-label="만화보기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+      <span>만화보기</span>
+    </button>
+    <button class="nav-item" onclick="location.href='quiz.html'" aria-label="OX퀴즈">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+      <span>OX퀴즈</span>
+    </button>
+    <button class="nav-item" onclick="location.href='series.html'" aria-label="시리즈">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 6l4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
+      <span>시리즈</span>
+    </button>
+    <button class="nav-item active" onclick="location.href='mylearning.html'" aria-label="내학습">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>
+      <span>내학습</span>
+    </button>
+  </nav>
+
+<script>
+  // ---- 데이터 ----
+  const VOLUMES = [
+    { num: 1,  title: '노력과 끈기', c1: '#F5E6C8', c2: '#E8C87A',
+      eps: ['우공이산', '형설지공', '작심삼일', '백절불굴', '일취월장'] },
+    { num: 2,  title: '우정과 의리', c1: '#E8F5EC', c2: '#A8D8B8',
+      eps: ['죽마고우', '이심전심', '동고동락', '호형호제', '막역지우'] },
+    { num: 3,  title: '지혜와 꾀',   c1: '#E8EEF8', c2: '#A8C0E8',
+      eps: ['일석이조', '조삼모사', '호가호위', '임기응변', '백문불여일견'] },
+    { num: 4,  title: '말과 태도',   c1: '#F8EAF2', c2: '#E8A8CC',
+      eps: ['마이동풍', '삼인성호', '구밀복검', '언중유골', '역지사지'] },
+    { num: 5,  title: '가족과 효도', c1: '#F8F0E8', c2: '#E8C0A0',
+      eps: ['반포지효', '부전자전', '혈육지정', '동병상련', '천생연분'] },
+    { num: 6,  title: '인생의 교훈', c1: '#EEE8F8', c2: '#C0A8E8',
+      eps: ['새옹지마', '전화위복', '고진감래', '호사다마', '인과응보'] },
+    { num: 7,  title: '욕심과 절제', c1: '#EAF5E8', c2: '#A8D8A0',
+      eps: ['소탐대실', '과유불급', '다다익선', '자화자찬', '중용지도'] },
+    { num: 8,  title: '성장과 배움', c1: '#E8F5F8', c2: '#98CAE0',
+      eps: ['청출어람', '온고지신', '교학상장', '괄목상대', '천리마'] },
+    { num: 9,  title: '용기와 위기', c1: '#F8ECEA', c2: '#E8A898',
+      eps: ['사면초가', '위기일발', '절체절명', '일편단심', '칠전팔기'] },
+    { num: 10, title: '세상과 공정', c1: '#EEF5E8', c2: '#B8D898',
+      eps: ['권선징악', '공평무사', '오십보백보', '유유상종', '천고마비'] },
+  ];
+  const AVAILABLE_EPS = new Set([1, 2, 3]); // 공개된 편
+
+  const STORAGE_KEY = 'sajasungo_completed';
+
+  function getCompleted() {
+    try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')); }
+    catch (_) { return new Set(); }
+  }
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // 아이콘
+  function iconCheck() {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  }
+  function iconChevron() {
+    return '<svg class="ep-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+  }
+  function iconLock() {
+    return '<svg class="ep-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  }
+  function iconCheckIcon() {
+    return '<svg class="ep-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  }
+
+  // 요약 렌더
+  function renderSummary(completed) {
+    const total = 50;
+    const done = completed.size;
+    const pct = Math.round((done / total) * 100);
+
+    // 원형 진행
+    const R = 45;
+    const CIRC = 2 * Math.PI * R;
+    const offset = CIRC * (1 - done / total);
+
+    // Vol별 진행도
+    const bars = VOLUMES.map(vol => {
+      let epDone = 0;
+      for (let i = 0; i < 5; i++) {
+        const globalEp = (vol.num - 1) * 5 + i + 1;
+        if (completed.has(`ep${pad2(globalEp)}`)) epDone++;
+      }
+      const barPct = (epDone / 5) * 100;
+      return `
+        <div class="vol-bar">
+          <div class="vol-bar-label">
+            <span><span class="num">Vol.${vol.num}</span> ${esc(vol.title)}</span>
+            <span>${epDone}/5</span>
+          </div>
+          <div class="vol-bar-track">
+            <div class="vol-bar-fill" style="--c1:${vol.c1};--c2:${vol.c2};width:${barPct}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    const hint = done === 0
+      ? '아직 완료한 편이 없어요. 첫 편을 시작해 볼까요?'
+      : done === total
+        ? '축하해요! 모든 사자성어를 완주했어요.'
+        : `지금까지 ${done}편을 완료했어요. 다음 편을 이어서 읽어 보세요.`;
+
+    const summaryEl = document.getElementById('summary');
+    summaryEl.innerHTML = `
+      <div class="summary-top">
+        <div class="summary-circle">
+          <svg viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="${R}"/>
+            <circle class="ring-fg" cx="50" cy="50" r="${R}"
+                    stroke-dasharray="${CIRC.toFixed(2)}"
+                    stroke-dashoffset="${offset.toFixed(2)}"/>
+          </svg>
+          <div class="pct">${pct}%</div>
+        </div>
+        <div class="summary-text">
+          <div class="summary-title">나의 학습 현황</div>
+          <div class="summary-big">${done}<small>/ ${total} 편</small></div>
+          <div class="summary-hint">${esc(hint)}</div>
+        </div>
+      </div>
+      <div class="vol-bars">${bars}</div>`;
+  }
+
+  // 볼륨/에피소드 렌더
+  function renderVolumes(completed) {
+    const html = VOLUMES.map(vol => {
+      let epDone = 0;
+      const eps = vol.eps.map((title, i) => {
+        const globalEp = (vol.num - 1) * 5 + (i + 1);
+        const epId = `ep${pad2(globalEp)}`;
+        const isAvailable = AVAILABLE_EPS.has(globalEp);
+        const isDone = completed.has(epId);
+        if (isDone) epDone++;
+
+        const cls = isDone ? 'ep done' : (isAvailable ? 'ep' : 'ep locked');
+        const href = isAvailable ? `viewer.html?ep=${pad2(globalEp)}` : 'javascript:void(0)';
+        const trailing = isDone ? iconCheckIcon() : (isAvailable ? iconChevron() : iconLock());
+        const numInner = isDone ? iconCheck() : (i + 1);
+
+        return `
+          <a class="${cls}" href="${href}" ${isAvailable ? '' : 'aria-disabled="true"'}>
+            <span class="ep-num">${numInner}</span>
+            <span class="ep-title">${esc(title)}</span>
+            ${trailing}
+          </a>`;
+      }).join('');
+
+      return `
+        <article class="vol-card" style="--c1:${vol.c1};--c2:${vol.c2}">
+          <div class="vol-header">
+            <div class="vol-header-left">
+              <span class="vol-num">Vol.${vol.num}</span>
+              <h2 class="vol-title">${esc(vol.title)}</h2>
+            </div>
+            <span class="vol-progress">${epDone}/5</span>
+          </div>
+          <div class="episodes">${eps}</div>
+        </article>`;
+    }).join('');
+    document.getElementById('volumes').innerHTML = html;
+  }
+
+  function render() {
+    const completed = getCompleted();
+    renderSummary(completed);
+    renderVolumes(completed);
+  }
+
+  function resetProgress() {
+    if (!confirm('학습 기록을 전부 초기화할까요? 되돌릴 수 없어요.')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    render();
+  }
+  window.resetProgress = resetProgress;
+
+  render();
+
+  // 보안
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('selectstart', e => e.preventDefault());
+  document.addEventListener('keydown', e => {
+    const k = (e.key || '').toUpperCase();
+    if (e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C')) ||
+        (e.ctrlKey && (k === 'U' || k === 'S' || k === 'P'))) {
+      e.preventDefault(); return false;
+    }
+  });
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  let lastTouch = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouch <= 300) e.preventDefault();
+    lastTouch = now;
+  }, { passive: false });
+</script>
+
+</body>
+</html>

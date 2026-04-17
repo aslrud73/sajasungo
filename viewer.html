@@ -223,6 +223,17 @@
     width: 100%;
     overflow: hidden;
   }
+
+  /* 씬 이미지 위에 덮는 대각선 반복 워터마크 */
+  .scene-watermark {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none;
+    display: block;
+  }
   .scene-image .placeholder {
     position: absolute;
     inset: 0;
@@ -695,6 +706,17 @@
         <img src="${esc(scene.image)}" alt="장면 ${idx + 1}"
              onload="this.previousElementSibling.remove()"
              onerror="this.remove()">
+        <svg class="scene-watermark" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <pattern id="sceneWmPattern${idx}" patternUnits="userSpaceOnUse" width="300" height="140" patternTransform="rotate(-30)">
+              <text x="10" y="70"
+                    font-family="'Malgun Gothic', 'Noto Sans KR', Pretendard, sans-serif"
+                    font-size="16" font-weight="700"
+                    fill="#3a2410" fill-opacity="0.25">꼬마나라 AI 티처랩</text>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#sceneWmPattern${idx})"/>
+        </svg>
       </div>`;
   }
 
@@ -768,8 +790,22 @@
     stage.appendChild(el);
 
     if (slide.type === 'quiz') attachQuizHandlers(el);
+    if (slide.type === 'result') markCompleted(data.id);
 
     updateControls();
+  }
+
+  // ---------- 완료 기록 (mylearning.html에서 사용) ----------
+  function markCompleted(epId) {
+    if (!epId) return;
+    try {
+      const raw = localStorage.getItem('sajasungo_completed');
+      const list = raw ? JSON.parse(raw) : [];
+      if (!list.includes(epId)) {
+        list.push(epId);
+        localStorage.setItem('sajasungo_completed', JSON.stringify(list));
+      }
+    } catch (_) {}
   }
 
   function updateControls() {
